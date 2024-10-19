@@ -44,29 +44,57 @@ impl Puzzle {
             puzzle_num, self.fen
         );
 
+        let fen_regions: Vec<&str> = self.fen.split_whitespace().collect(); 
+        let puzzle_color = fen_regions[fen_regions.len() - 2];
+
         let pgn_moves = fen_to_pgn(self.fen.clone(), self.solution.clone());
+        
+        let mut pgn_output: String;
 
-        let mut pgn_output = String::from("{ White to move }\n");
-
-        for (i, mv) in pgn_moves.iter().enumerate() {
-            let move_number = i / 2 + 1;
-            let is_player_move = i % 2 == 0;
-
-            if i == self.solution.len() - 1 {
-                pgn_output.push_str(&format!("{}.", move_number));
-                pgn_output.push_str(&format!(" {}", mv));
-                pgn_output.push_str(&format!(" {{ {} }} ", self.info_comment()));
-            } else if is_player_move {
-                pgn_output.push_str(&format!("{}.", move_number));
-                pgn_output.push_str(&format!(" {}", mv));
-                pgn_output.push_str(" { Correct } ");
-            } else {
-                pgn_output.push_str(&format!("{}...", move_number));
-                pgn_output.push_str(&format!(" {}", mv));
-                pgn_output.push_str(" { White to move } ");
+        // wow
+        if puzzle_color == "w" {
+            pgn_output = String::from("{ White to move }\n");
+            for (i, mv) in pgn_moves.iter().enumerate() {
+                let move_number = i / 2 + 1;
+                let is_player_move = i % 2 == 0;
+    
+                if i == self.solution.len() - 1 {
+                    pgn_output.push_str(&format!("{}.", move_number));
+                    pgn_output.push_str(&format!(" {}", mv));
+                    pgn_output.push_str(&format!(" {{ {} }} ", self.info_comment()));
+                } else if is_player_move {
+                    pgn_output.push_str(&format!("{}.", move_number));
+                    pgn_output.push_str(&format!(" {}", mv));
+                    pgn_output.push_str(" { Correct } ");
+                } else {
+                    pgn_output.push_str(&format!("{}...", move_number));
+                    pgn_output.push_str(&format!(" {}", mv));
+                    pgn_output.push_str(" { White to move } ");
+                }
             }
+            return format!("{}\n\n{}", headers, pgn_output);
+        } else {
+            pgn_output = String::from("{ Black to move }\n");
+            for (i, mv) in pgn_moves.iter().enumerate() {
+                let move_number = (i + 1) / 2 + 1;
+                let is_player_move = i % 2 == 1;
+    
+                if i == self.solution.len() - 1 {
+                    pgn_output.push_str(&format!("{}...", move_number));
+                    pgn_output.push_str(&format!(" {}", mv));
+                    pgn_output.push_str(&format!(" {{ {} }} ", self.info_comment()));
+                } else if is_player_move {
+                    pgn_output.push_str(&format!("{}.", move_number));
+                    pgn_output.push_str(&format!(" {}", mv));
+                    pgn_output.push_str(" { Black to move } ");
+                } else {
+                    pgn_output.push_str(&format!("{}...", move_number));
+                    pgn_output.push_str(&format!(" {}", mv));
+                    pgn_output.push_str(" { Correct } ");
+                }
+            }
+            return format!("{}\n\n{}", headers, pgn_output);
         }
-        return format!("{}\n\n{}", headers, pgn_output);
     }
 }
 
