@@ -130,7 +130,6 @@ fn get_puzzle_history_blocking(max: i32) -> Result<Vec<Puzzle>, Box<dyn Error>> 
             match parse_puzzle(puzzle_attempt_string) {
                 Ok(puzzle_attempt) => {
                     if !puzzle_attempt.win {
-                        println!("{}", puzzle_attempt.puzzle.build_pgn(1));
                         incorrect_puzzles.push(puzzle_attempt.puzzle);
                     }
                 }
@@ -147,9 +146,14 @@ fn get_puzzle_history_blocking(max: i32) -> Result<Vec<Puzzle>, Box<dyn Error>> 
 }
 
 
+
+
 fn main() -> Result<(), Box<dyn Error>> {
 
-    get_puzzle_history_blocking(1)?;
+    let puzzle_history = get_puzzle_history_blocking(1)?;
+    for puzzle in puzzle_history {
+        println!("{}", puzzle.build_pgn(1));
+    }
 
     Ok(())
 }
