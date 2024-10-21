@@ -7,7 +7,7 @@ use reqwest::Client;
 
 mod notation_tools;
 
-const PAT: &str = "lip_4706DGPceC0b3H9YRO5x";
+const PAT: &str = "imlazynotstupid";
 const PAGE_SIZE: i32 = 50;
 
 #[derive(Deserialize)]
