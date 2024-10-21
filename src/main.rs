@@ -8,8 +8,10 @@ use reqwest::Client;
 mod notation_tools;
 
 const PAT: &str = "imlazynotstupid";
+const PAGE_SIZE: i32 = 50;
 
 #[derive(Deserialize)]
+#[derive(Clone)]
 struct Puzzle {
     id: String,
     rating: i32,
@@ -21,7 +23,8 @@ struct Puzzle {
 #[derive(Deserialize)]
 struct PuzzleAttempt {
     win: bool,
-    puzzle: Puzzle
+    puzzle: Puzzle, 
+    date: i64
 }
 
 
@@ -110,16 +113,22 @@ fn parse_puzzle(json_str: &str) -> serde_json::Result<PuzzleAttempt> {
 }
 
 
-async fn get_puzzle_history(max: i32) -> Result<Vec<Puzzle>, Box<dyn Error>> {
+async fn get_puzzle_history_incorrect_page(max: i32, before_date: i64) -> Result<(Vec<Puzzle>, i64), Box<dyn Error>> {
     let client = reqwest::Client::new();
 
     let mut headers = HeaderMap::new();
     headers.insert(AUTHORIZATION, HeaderValue::from_str(&format!("Bearer {}", PAT))?);
 
+    let mut query = vec![("max", i64::from(max))];
+
+    if before_date > -1 {
+        query.push(("before", before_date));
+    }
+
     let response = client
         .get("https://lichess.org/api/puzzle/activity")
         .headers(headers)
-        .query(&[("max", max)])
+        .query(&query)
         .send()
         .await?;
 
@@ -127,12 +136,14 @@ async fn get_puzzle_history(max: i32) -> Result<Vec<Puzzle>, Box<dyn Error>> {
         let body = response.text().await?;
         let puzzle_attempt_strings: Vec<&str> = body.lines().collect();
         let mut incorrect_puzzles: Vec<Puzzle> = Vec::new();
+        let mut last_date: i64 = 0;
 
         for puzzle_attempt_string in puzzle_attempt_strings {
             match parse_puzzle(puzzle_attempt_string) {
                 Ok(puzzle_attempt) => {
                     if !puzzle_attempt.win {
                         incorrect_puzzles.push(puzzle_attempt.puzzle);
+                        last_date = puzzle_attempt.date;
                     }
                 }
                 Err(e) => {
@@ -140,11 +151,37 @@ async fn get_puzzle_history(max: i32) -> Result<Vec<Puzzle>, Box<dyn Error>> {
                 }
             }
         }
-        Ok(incorrect_puzzles)
+        Ok((incorrect_puzzles, last_date))
 
     } else {
         Err(Box::from(format!("API request error: {}", response.status())))
     }
+}
+
+
+async fn get_last_n_incorrect_puzzles(n: usize) -> Result<Vec<Puzzle>, Box<dyn Error>> {
+    let mut incorrect_puzzles: Vec<Puzzle> = Vec::new();
+    let mut size: usize = 0;
+    let mut before_date = -1;
+    let mut page_number = 1;
+
+    while size < n {
+        println!("Getting page {}", page_number);
+        let page_data = get_puzzle_history_incorrect_page(PAGE_SIZE, before_date).await?;
+        let page = page_data.0;
+        before_date = page_data.1;
+
+        if page.is_empty() {break;}
+
+        for puzzle in page {
+            incorrect_puzzles.push(puzzle);
+            size += 1;
+        }
+
+        page_number += 1;
+    }
+
+    Ok(incorrect_puzzles[0..n].to_vec())
 }
 
 
@@ -203,9 +240,6 @@ async fn post_puzzles_to_study(study_id: &str, puzzles: Vec<Puzzle>, offset_inde
 
     Ok(())
 }
-
-
-// async fn clear_study
 
 
 async fn get_study_chapter_ids(study_id: &str) -> Result<Vec<String>, Box<dyn Error>> {
@@ -295,7 +329,7 @@ async fn clear_and_upload(study_id: &str, mut puzzles: Vec<Puzzle>) -> Result<()
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let puzzle_history = get_puzzle_history(64).await?;
+    let puzzle_history = get_last_n_incorrect_puzzles(4).await?;
     clear_and_upload("mP8agodj", puzzle_history).await?;
 
     Ok(())
