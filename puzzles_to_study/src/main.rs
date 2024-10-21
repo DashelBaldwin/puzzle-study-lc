@@ -159,27 +159,30 @@ struct ImportPgnRequest {
 }
 
 
-fn concatenate_pgn(puzzles: Vec<Puzzle>) -> String {
+fn concatenate_pgn(puzzles: Vec<Puzzle>, offset_index: bool) -> String {
+    let index_offset = if offset_index {2} else {1};
     let pgn_strings: Vec<String> = puzzles
         .iter()
         .enumerate()
-        .map(|(index, puzzle)| puzzle.build_pgn(index + 1)) 
+        .map(|(index, puzzle)| puzzle.build_pgn(index + index_offset)) 
         .collect();
     
     pgn_strings.join("\n\n")
 }
 
 
-async fn post_puzzles_to_study(study_id: &str, puzzles: Vec<Puzzle>) -> Result<(), Box<dyn Error>> {
+async fn post_puzzles_to_study(study_id: &str, puzzles: Vec<Puzzle>, offset_index: bool) -> Result<(), Box<dyn Error>> {
     let client: Client = Client::new();
 
     let mut headers = HeaderMap::new();
     headers.insert(AUTHORIZATION, HeaderValue::from_str(&format!("Bearer {}", PAT))?);
 
-    let pgn_strings = concatenate_pgn(puzzles);
+    let pgn_strings = concatenate_pgn(puzzles, offset_index);
+
+    let form_puzzle_name = if !offset_index {"Puzzle 1".to_string()} else {"Puzzle 2".to_string()};
 
     let form = ImportPgnRequest {
-        name: "Puzzle 1".to_string(),
+        name: form_puzzle_name,
         pgn: pgn_strings,
         orientation: "default".to_string(),
         variant: "fromPosition".to_string(),
@@ -255,7 +258,7 @@ async fn clear_chapter(study_id: &str, id: String) -> Result<(), Box<dyn Error>>
     
         if !response.status().is_success() {
             eprintln!("Failed to delete chapter ID={} with status: {}", id, response.status());
-            return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, format!("Failed to delete chapter ID={} with status: {}", id, response.status()))));  // Return an error
+            return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, format!("Failed to delete chapter ID={} with status: {}", id, response.status()))));
         }
 
     Ok(())
@@ -274,17 +277,27 @@ async fn clear_study(study_id: &str, mut ids: Vec<String>, include_first_chapter
 }
 
 
+async fn clear_and_upload(study_id: &str, mut puzzles: Vec<Puzzle>) -> Result<(), Box<dyn Error>> {
+    let chapter_ids = get_study_chapter_ids(study_id).await?;
+    let minimum_chapter_id = (&chapter_ids[0]).to_string();
+    let first_puzzle = puzzles.remove(0);
+
+    println!("Attempting to clear study...");
+    clear_study(study_id, chapter_ids, false).await?;
+    println!("Swapping first chapter...");
+    post_puzzles_to_study(study_id, vec![first_puzzle], false).await?;
+    clear_chapter(study_id, minimum_chapter_id).await?;
+    println!("Uploading all chapters...");
+    post_puzzles_to_study(study_id, puzzles, true).await?;
+
+    Ok(())
+}
+
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-
-    // let puzzle_history = get_puzzle_history_blocking(10)?;
-    // for puzzle in &puzzle_history {
-    //     println!("{}", puzzle.build_pgn(0));
-    // }
-    // post_puzzles_to_study("mP8agodj", puzzle_history)?;
-
-    let chapter_ids = get_study_chapter_ids("mP8agodj").await?;
-    clear_study("mP8agodj", chapter_ids, false).await?;
+    let puzzle_history = get_puzzle_history(64).await?;
+    clear_and_upload("mP8agodj", puzzle_history).await?;
 
     Ok(())
 }
