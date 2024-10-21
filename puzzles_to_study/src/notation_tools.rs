@@ -3,6 +3,11 @@
 // yes I know this is lazy but it works and I tested it and I don't want to attempt
 // to refactor it again because weird edge cases break and they don't break here somehow 
 
+// this converts an FEN string and the following non-descriptive positional notation moves (e.g. "f7h8")
+// into a minimal PGN format; adding check + checkmate annotations and only adding disambiguations when
+// necessary is not required for lichess to parse the file properly. however, creating a board to handle
+// other special cases like en passant and promotion is still required, hence why this is so messy
+
 pub fn fen_to_pgn(fen: String, ambiguous_moves: Vec<String>) -> Vec<String> {
     let mut board: Vec<Vec<String>> = vec![vec![".".to_string(); 8]; 8];
 
@@ -27,7 +32,11 @@ pub fn fen_to_pgn(fen: String, ambiguous_moves: Vec<String>) -> Vec<String> {
         rank += 1;
     }
 
-    let mut ep_file: i32 = -1; // TODO change to the ep flag if provided in FEN !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    let mut ep_file: i32 = if fen_regions[10] != "-" {
+        (fen_regions[10].chars().nth(0).unwrap() as usize -('a' as usize)) as i32
+    } else {
+        -1
+    };
 
     let mut moves: Vec<String> = Vec::new();
     for ambiguous_move in ambiguous_moves {
@@ -37,9 +46,8 @@ pub fn fen_to_pgn(fen: String, ambiguous_moves: Vec<String>) -> Vec<String> {
         let end_rank = ambiguous_move.chars().nth(3).unwrap();
 
         let start_file_index = start_file as usize - 'a' as usize;
-        let end_file_index = end_file as usize - 'a' as usize;
-
         let start_rank_index = 8 - (start_rank.to_digit(10).unwrap() as usize);
+        let end_file_index = end_file as usize - 'a' as usize;
         let end_rank_index = 8 - (end_rank.to_digit(10).unwrap() as usize);
 
         let piece = board[start_rank_index][start_file_index].clone();
@@ -82,9 +90,9 @@ pub fn fen_to_pgn(fen: String, ambiguous_moves: Vec<String>) -> Vec<String> {
             }
             moves.push(pawn_move);
         } else if board[end_rank_index][end_file_index] != "." {
-            moves.push(format!("{}x{}{}", piece, end_file, end_rank));
+            moves.push(format!("{}{}{}x{}{}", piece, start_file, start_rank, end_file, end_rank));
         } else {
-            moves.push(format!("{}{}{}", piece, end_file, end_rank));
+            moves.push(format!("{}{}{}{}{}", piece, start_file, start_rank, end_file, end_rank));
         }
         board[end_rank_index][end_file_index] = piece;
 
