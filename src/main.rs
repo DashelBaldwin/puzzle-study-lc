@@ -205,9 +205,6 @@ async fn post_puzzles_to_study(study_id: &str, puzzles: Vec<Puzzle>, offset_inde
 }
 
 
-// async fn clear_study
-
-
 async fn get_study_chapter_ids(study_id: &str) -> Result<Vec<String>, Box<dyn Error>> {
     let client = reqwest::Client::new();
 
