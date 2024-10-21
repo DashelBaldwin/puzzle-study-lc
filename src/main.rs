@@ -177,7 +177,10 @@ async fn get_last_n_incorrect_puzzles(n: usize) -> Result<Vec<Puzzle>, Box<dyn E
             incorrect_puzzles.push(puzzle);
             size += 1;
         }
+
+        page_number += 1;
     }
+
     Ok(incorrect_puzzles[0..n].to_vec())
 }
 
@@ -326,7 +329,7 @@ async fn clear_and_upload(study_id: &str, mut puzzles: Vec<Puzzle>) -> Result<()
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let puzzle_history = get_last_n_incorrect_puzzles(64).await?;
+    let puzzle_history = get_last_n_incorrect_puzzles(4).await?;
     clear_and_upload("mP8agodj", puzzle_history).await?;
 
     Ok(())
