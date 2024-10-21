@@ -7,8 +7,7 @@ use reqwest::Client;
 
 mod notation_tools;
 
-//lip_NfKGhBFyeXxX0yerqoCi
-const PAT: &str = "lip_NfKGhBFyeXxX0yerqoCi";
+const PAT: &str = "imlazynotstupid";
 
 #[derive(Deserialize)]
 struct Puzzle {
