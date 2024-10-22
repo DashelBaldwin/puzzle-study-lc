@@ -3,6 +3,9 @@
 // Possible TODO: make auto generation skip puzzles manually imported into the same set by user to prevent duplicates
 // FIX: one-move puzzles don't generate info comments
 
+use notation_tools::Board;
+use notation_tools::PieceName;
+use notation_tools::PieceColor;
 use serde::{Serialize, Deserialize};
 use std::error::Error;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
@@ -396,6 +399,13 @@ async fn clear_and_upload(study_id: &str, mut puzzles: Vec<Puzzle>) -> Result<()
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     // clear_and_upload("mP8agodj", puzzle_history).await?;
+
+    let board = Board::default();
+    board.print();
+
+    if let Some(coords) = Board::find_origin_of_move(&board, (5, 2), PieceName::Knight, PieceColor::White, (None, None)) {
+        println!("{}, {}", coords.0, coords.1);
+    }
 
     Ok(())
 }

@@ -1,7 +1,7 @@
 // notation_tools.rs
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-enum PieceName {
+pub enum PieceName {
     Pawn,
     Knight,
     Bishop,
@@ -11,7 +11,7 @@ enum PieceName {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-enum PieceColor {
+pub enum PieceColor {
     White,
     Black
 }
@@ -22,12 +22,13 @@ struct Piece {
     color: PieceColor
 }
 
-#[derive(Debug)]
-struct Board {
+#[derive(Debug, Clone)]
+pub struct Board {
     contents: [[Option<Piece>; 8]; 8],
     en_passant_target: Option<(usize, usize)>
 }
 
+#[derive(Clone)]
 struct PieceLocator {
     origin: (usize, usize),
     target: Piece,
@@ -43,7 +44,7 @@ impl PieceLocator {
         target: Piece,
         search_direction: (i32, i32),
         scope_restriction: (Option<usize>, Option<usize>),
-        board: Board,
+        board: &Board,
         is_jumper: bool,
     ) -> Self {
         Self {
@@ -51,7 +52,7 @@ impl PieceLocator {
             search_direction,
             target,
             scope_restriction,
-            board,
+            board: board.clone(),
             is_jumper,
         }
     }
@@ -66,8 +67,14 @@ impl PieceLocator {
         while (0..8).contains(&rank) && (0..8).contains(&file) {
             if let Some(current) = self.board.contents[rank as usize][file as usize] {
                 if current == self.target {
+                    if let Some(rank_restriction) = self.scope_restriction.0 {
+                        if rank as usize != rank_restriction { break; }
+                    } else if let Some(file_restriction)= self.scope_restriction.1 {
+                        if file as usize != file_restriction { break; }
+                    }
                     Some((rank as usize, file as usize));
-                } else { break; }
+                }
+                break; 
             }
 
             if self.is_jumper { break; }
@@ -103,6 +110,34 @@ impl Default for Board {
 }
 
 impl Board {
+    pub fn print(&self) {
+        for row in self.contents.iter().rev() {
+            for square in row.iter() {
+                match square {
+                    Some(piece) => {
+                        let symbol = match (&piece.name, &piece.color) {
+                            (PieceName::King, PieceColor::White) => "K",
+                            (PieceName::Queen, PieceColor::White) => "Q",
+                            (PieceName::Rook, PieceColor::White) => "R",
+                            (PieceName::Bishop, PieceColor::White) => "B",
+                            (PieceName::Knight, PieceColor::White) => "N",
+                            (PieceName::Pawn, PieceColor::White) => "P",
+                            (PieceName::King, PieceColor::Black) => "k",
+                            (PieceName::Queen, PieceColor::Black) => "q",
+                            (PieceName::Rook, PieceColor::Black) => "r",
+                            (PieceName::Bishop, PieceColor::Black) => "b",
+                            (PieceName::Knight, PieceColor::Black) => "n",
+                            (PieceName::Pawn, PieceColor::Black) => "p",
+                        };
+                        print!("{} ", symbol);
+                    }
+                    None => print!(". "),
+                }
+            }
+            println!();
+        }
+    }
+
     fn normal_movement(&mut self, from: (usize, usize), to: (usize, usize)) {
         let piece = self.contents[from.0][from.1].unwrap();
         self.contents[from.0][from.1] = None;
@@ -146,8 +181,64 @@ impl Board {
         }
     }
 
+    pub fn find_origin_of_move(
+        &self,
+        end_square: (usize, usize), 
+        piece_name: PieceName, 
+        piece_color: PieceColor, 
+        scope_restriction: (Option<usize>, Option<usize>)
+    ) -> Option<(usize, usize)> {
+        let piece = Piece { name: piece_name, color: piece_color };
+        let hv_locators: Vec<PieceLocator> = vec![
+            PieceLocator::new(end_square, piece, (0, 1), scope_restriction, &self.clone(), false),
+            PieceLocator::new(end_square, piece, (0, -1), scope_restriction, &self.clone(), false),
+            PieceLocator::new(end_square, piece, (1, 0), scope_restriction, &self.clone(), false),
+            PieceLocator::new(end_square, piece, (-1, 0), scope_restriction, &self.clone(), false)
+        ];
+        let diag_locators: Vec<PieceLocator> = vec![
+            PieceLocator::new(end_square, piece, (1, 1), scope_restriction, &self.clone(), false),
+            PieceLocator::new(end_square, piece, (1, -1), scope_restriction, &self.clone(), false),
+            PieceLocator::new(end_square, piece, (-1, 1), scope_restriction, &self.clone(), false),
+            PieceLocator::new(end_square, piece, (-1, -1), scope_restriction, &self.clone(), false)
+        ];
+        let kn_locators: Vec<PieceLocator> = vec![
+            PieceLocator::new(end_square, piece, (1, 2), scope_restriction, &self.clone(), false),
+            PieceLocator::new(end_square, piece, (1, -2), scope_restriction, &self.clone(), false),
+            PieceLocator::new(end_square, piece, (2, 1), scope_restriction, &self.clone(), false),
+            PieceLocator::new(end_square, piece, (2, -1), scope_restriction, &self.clone(), false),
+            PieceLocator::new(end_square, piece, (-1, 2), scope_restriction, &self.clone(), false),
+            PieceLocator::new(end_square, piece, (-1, -2), scope_restriction, &self.clone(), false),
+            PieceLocator::new(end_square, piece, (-2, 1), scope_restriction, &self.clone(), false),
+            PieceLocator::new(end_square, piece, (-2, -1), scope_restriction, &self.clone(), false)
+        ];
+        let q_locators: Vec<PieceLocator> = [diag_locators.as_slice(), hv_locators.as_slice()].concat();
+
+        match piece_name {
+            PieceName::Rook => if let Some(origin) = find_piece_location(hv_locators) {
+                Some(origin);
+            }
+            PieceName::Bishop => if let Some(origin) = find_piece_location(diag_locators) {
+                Some(origin);
+            }
+            PieceName::Queen => if let Some(origin) = find_piece_location(q_locators) {
+                Some(origin);
+            }
+            PieceName::Knight => if let Some(origin) = find_piece_location(kn_locators) {
+                Some(origin);
+            }
+            _ => {
+                println!("King or Pawn searched for origin square as if it were another piece")
+            }
+        }
+        println!("Err: No piece was located...");
+        None
+    }
 }
 
+fn find_piece_location(locators: Vec<PieceLocator>) -> Option<(usize, usize)> {
+    locators.into_iter()
+        .find_map(|locator| locator.locate())
+}
 
 // 2 am trash coding session derived function that works correctly on the first test goes so hard
 // if you're reading this, pray for me that this never breaks
