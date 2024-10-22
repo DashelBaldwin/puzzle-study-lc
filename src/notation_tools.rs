@@ -28,7 +28,7 @@ pub struct Board {
     en_passant_target: Option<(usize, usize)>
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 struct PieceLocator {
     origin: (usize, usize),
     target: Piece,
@@ -65,14 +65,20 @@ impl PieceLocator {
         file += self.search_direction.1;
 
         while (0..8).contains(&rank) && (0..8).contains(&file) {
+            println!("looking for {:?} at rank {} file {}", self.target.name, rank, file);
             if let Some(current) = self.board.contents[rank as usize][file as usize] {
-                if current == self.target {
+                println!("Piece {:?} located", current);
+                if (current.name == self.target.name) && (current.color == self.target.color) {
+                    println!("Pieces matched");
                     if let Some(rank_restriction) = self.scope_restriction.0 {
+                        println!("Rank restriction blocked match");
                         if rank as usize != rank_restriction { break; }
                     } else if let Some(file_restriction)= self.scope_restriction.1 {
+                        println!("File restriction blocked match");
                         if file as usize != file_restriction { break; }
                     }
-                    Some((rank as usize, file as usize));
+                    println!("attempting to return {}, {}", rank as usize, file as usize);
+                    return Some((rank as usize, file as usize));
                 }
                 break; 
             }
@@ -215,16 +221,19 @@ impl Board {
 
         match piece_name {
             PieceName::Rook => if let Some(origin) = find_piece_location(hv_locators) {
-                Some(origin);
+                return Some(origin);
             }
             PieceName::Bishop => if let Some(origin) = find_piece_location(diag_locators) {
-                Some(origin);
+                return Some(origin);
             }
             PieceName::Queen => if let Some(origin) = find_piece_location(q_locators) {
-                Some(origin);
+                return Some(origin);
             }
-            PieceName::Knight => if let Some(origin) = find_piece_location(kn_locators) {
-                Some(origin);
+            PieceName::Knight => {
+                println!("expecting knight");
+                if let Some(origin) = find_piece_location(kn_locators) {
+                    return Some(origin);
+                }
             }
             _ => {
                 println!("King or Pawn searched for origin square as if it were another piece")
@@ -236,9 +245,15 @@ impl Board {
 }
 
 fn find_piece_location(locators: Vec<PieceLocator>) -> Option<(usize, usize)> {
-    locators.into_iter()
-        .find_map(|locator| locator.locate())
+    for locator in locators {
+        if let Some(coords) = locator.locate() {
+            println!("Got coords from matched locator");
+            return Some(coords);
+        }
+    }
+    None
 }
+
 
 // 2 am trash coding session derived function that works correctly on the first test goes so hard
 // if you're reading this, pray for me that this never breaks

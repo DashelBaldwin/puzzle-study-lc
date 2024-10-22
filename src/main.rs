@@ -403,8 +403,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let board = Board::default();
     board.print();
 
-    if let Some(coords) = Board::find_origin_of_move(&board, (5, 2), PieceName::Knight, PieceColor::White, (None, None)) {
-        println!("{}, {}", coords.0, coords.1);
+    if let Some(coords) = Board::find_origin_of_move(&board, (2, 5), PieceName::Knight, PieceColor::White, (None, None)) {
+        println!("Success! found at {}, {}", coords.0, coords.1);
     }
 
     Ok(())
