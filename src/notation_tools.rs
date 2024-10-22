@@ -67,9 +67,9 @@ impl PieceLocator {
         while (0..8).contains(&rank) && (0..8).contains(&file) {
             println!("looking for {:?} at rank {} file {}", self.target.name, rank, file);
             if let Some(current) = self.board.contents[rank as usize][file as usize] {
-                println!("Piece {:?} located", current);
+                println!("{:?} located", current);
                 if (current.name == self.target.name) && (current.color == self.target.color) {
-                    println!("Pieces matched");
+                    println!("Matched");
                     if let Some(rank_restriction) = self.scope_restriction.0 {
                         println!("Rank restriction blocked match");
                         if rank as usize != rank_restriction { break; }
@@ -217,16 +217,29 @@ impl Board {
             PieceLocator::new(end_square, piece, (-2, 1), scope_restriction, &self.clone(), false),
             PieceLocator::new(end_square, piece, (-2, -1), scope_restriction, &self.clone(), false)
         ];
+        let kg_locators: Vec<PieceLocator> = vec![
+            PieceLocator::new(end_square, piece, (1, 1), scope_restriction, &self.clone(), true),
+            PieceLocator::new(end_square, piece, (1, -1), scope_restriction, &self.clone(), true),
+            PieceLocator::new(end_square, piece, (-1, 1), scope_restriction, &self.clone(), true),
+            PieceLocator::new(end_square, piece, (-1, -1), scope_restriction, &self.clone(), true),
+            PieceLocator::new(end_square, piece, (0, 1), scope_restriction, &self.clone(), true),
+            PieceLocator::new(end_square, piece, (0, -1), scope_restriction, &self.clone(), true),
+            PieceLocator::new(end_square, piece, (1, 0), scope_restriction, &self.clone(), true),
+            PieceLocator::new(end_square, piece, (-1, 0), scope_restriction, &self.clone(), true)
+        ];
         let q_locators: Vec<PieceLocator> = [diag_locators.as_slice(), hv_locators.as_slice()].concat();
 
         match piece_name {
             PieceName::Rook => if let Some(origin) = find_piece_location(hv_locators) {
+                println!("expecting rook");
                 return Some(origin);
             }
             PieceName::Bishop => if let Some(origin) = find_piece_location(diag_locators) {
+                println!("expecting bishop");
                 return Some(origin);
             }
             PieceName::Queen => if let Some(origin) = find_piece_location(q_locators) {
+                println!("expecting queen");
                 return Some(origin);
             }
             PieceName::Knight => {
@@ -235,11 +248,17 @@ impl Board {
                     return Some(origin);
                 }
             }
-            _ => {
-                println!("King or Pawn searched for origin square as if it were another piece")
+            PieceName::King => {
+                println!("expecting king");
+                if let Some(origin) = find_piece_location(kg_locators) {
+                    return Some(origin);
+                }
+            }
+            PieceName::Pawn => {
+                println!("Pawn searched for origin square as if it were another piece")
             }
         }
-        println!("Err: No piece was located...");
+        println!("find_origin_of_move: No piece was located...");
         None
     }
 }
@@ -247,16 +266,15 @@ impl Board {
 fn find_piece_location(locators: Vec<PieceLocator>) -> Option<(usize, usize)> {
     for locator in locators {
         if let Some(coords) = locator.locate() {
-            println!("Got coords from matched locator");
+            println!("find_piece_location: Got coords from matched locator");
             return Some(coords);
         }
     }
     None
 }
 
-
-// 2 am trash coding session derived function that works correctly on the first test goes so hard
-// if you're reading this, pray for me that this never breaks
+// 2 am trash coding session function that works correctly on the first test goes so hard
+// if you're reading this, pray that this never breaks
 pub fn fen_to_pgn(fen: String, ambiguous_moves: Vec<String>) -> Vec<String> {
     let mut board: Vec<Vec<String>> = vec![vec![".".to_string(); 8]; 8];
 
