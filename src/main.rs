@@ -1,5 +1,8 @@
 // main.rs
 
+// Possible TODO: make auto generation skip puzzles manually imported into the same set by user to prevent duplicates
+// FIX: one-move puzzles don't generate info comments
+
 use serde::{Serialize, Deserialize};
 use std::error::Error;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
@@ -7,7 +10,7 @@ use reqwest::Client;
 
 mod notation_tools;
 
-const PAT: &str = "imlazynotstupid";
+const PAT: &str = "lip_4706DGPceC0b3H9YRO5x";
 const PAGE_SIZE: i32 = 50;
 
 #[derive(Deserialize)]
@@ -26,6 +29,25 @@ struct PuzzleAttempt {
     puzzle: Puzzle, 
     date: i64
 }
+
+// #[derive(Deserialize)]
+// struct DirectPuzzleData {
+//     game: DirectPuzzleGameData,
+//     puzzle: DirectPuzzle
+// }
+
+// #[derive(Deserialize)]
+// struct DirectPuzzle {
+//     id: String,
+//     rating: i32,
+//     solution: Vec<String>,
+//     themes: Vec<String>,
+// }
+
+// #[derive(Deserialize)]
+// struct DirectPuzzleGameData {
+//     pgn: String
+// }
 
 
 impl Puzzle {
@@ -111,6 +133,50 @@ fn parse_puzzle(json_str: &str) -> serde_json::Result<PuzzleAttempt> {
     let puzzle_attempt: PuzzleAttempt = serde_json::from_str(json_str)?;
     Ok(puzzle_attempt)
 }
+
+
+// fn parse_direct_puzzle(json_str: &str) -> serde_json::Result<DirectPuzzleData> {
+//     let direct_puzzle_data: DirectPuzzleData = serde_json::from_str(json_str)?;
+//     Ok(direct_puzzle_data)
+// }
+
+
+// async fn get_puzzle_from_id(id: String) -> Result<Puzzle, Box<dyn Error>> {
+//     let client = reqwest::Client::new();
+
+//     let response = client
+//         .get(format!("https://lichess.org/api/puzzle/{}", id))
+//         .send()
+//         .await?;
+
+//     if response.status().is_success() {
+//         let body = response.text().await?;
+//         match parse_puzzle(&body) {
+//             Ok(puzzle_attempt) => {
+//                 Ok(puzzle_attempt.puzzle)
+//             }
+//             Err(e) => {
+//                 eprintln!("Failed to parse puzzle: {}", e);
+//                 Err(Box::from(e))
+//             }
+//         }
+
+//     } else {
+//         Err(Box::from(format!("API request error: {}", response.status())))
+//     }
+
+// }
+
+
+// async fn get_puzzles_from_ids(ids: Vec<String>) -> Result<Vec<Puzzle>, Box<dyn Error>> {
+//     let mut puzzles: Vec<Puzzle> = Vec::new();
+
+//     for id in ids {
+//         puzzles.push(get_puzzle_from_id(id).await?);
+//     }
+
+//     Ok(puzzles)
+// }
 
 
 async fn get_puzzle_history_incorrect_page(max: i32, before_date: i64) -> Result<(Vec<Puzzle>, i64), Box<dyn Error>> {
@@ -329,8 +395,7 @@ async fn clear_and_upload(study_id: &str, mut puzzles: Vec<Puzzle>) -> Result<()
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let puzzle_history = get_last_n_incorrect_puzzles(4).await?;
-    clear_and_upload("mP8agodj", puzzle_history).await?;
+    // clear_and_upload("mP8agodj", puzzle_history).await?;
 
     Ok(())
 }

@@ -1,4 +1,4 @@
-// notation_tools.js
+// notation_tools.rs
 
 // yes I know this is lazy but it works and I tested it and I don't want to attempt
 // to refactor it again because weird edge cases break and they don't break here somehow 
@@ -7,6 +7,94 @@
 // into a minimal PGN format; adding check + checkmate annotations and only adding disambiguations when
 // necessary is not required for lichess to parse the file properly. however, creating a board to handle
 // other special cases like en passant and promotion is still required, hence why this is so messy
+
+#[derive(Debug, Clone, Copy)]
+enum PieceName {
+    Pawn,
+    Knight,
+    Bishop,
+    Rook,
+    Queen,
+    King
+}
+
+#[derive(Debug, Clone, Copy)]
+enum PieceColor {
+    White,
+    Black
+}
+
+#[derive(Debug, Clone, Copy)]
+struct Piece {
+    name: PieceName,
+    color: PieceColor
+}
+
+#[derive(Debug)]
+struct Board {
+    contents: [[Option<Piece>; 8]; 8],
+    en_passant_target: Option<(usize, usize)>
+}
+
+
+impl Default for Board {
+    fn default() -> Self {
+        let mut board: [[Option<Piece>; 8]; 8] = [[None; 8]; 8];
+
+        let create_piece = |name, color| Some(Piece { name, color });
+
+        let standard_setup = vec![
+            PieceName::Rook, PieceName::Knight, PieceName::Bishop, PieceName::Queen, 
+            PieceName::King, PieceName::Bishop, PieceName::Knight, PieceName::Rook
+        ];
+
+        for i in 0..8 {
+            board[0][i] = create_piece(standard_setup[i], PieceColor::White);
+            board[1][i] = create_piece(PieceName::Pawn, PieceColor::White);
+            board[6][i] = create_piece(PieceName::Pawn, PieceColor::Black);
+            board[7][i] = create_piece(standard_setup[i], PieceColor::Black);
+        }
+
+        Self { contents: board, en_passant_target: None }
+    }
+}
+
+impl Board {
+    fn normal_movement(&mut self, from: (usize, usize), to: (usize, usize)) {
+        let piece = self.contents[from.0][from.1].unwrap();
+        self.contents[from.0][from.1] = None;
+        self.contents[to.0][to.1] = Some(piece);
+    }
+
+    fn pawn_movement(&mut self, from: (usize, usize), to: (usize, usize), promotion: Option<Piece>) {
+        self.normal_movement(from, to);
+
+        let distance_moved = if to.0 > from.0 {to.0 - from.0} else {from.0 - to.0};
+
+        if let Some(target) = self.en_passant_target {
+            if to == target {
+                match to.0 {
+                    2 => self.contents[to.0 - 1][to.1] = None,
+                    5 => self.contents[to.0 + 1][to.1] = None,
+                    _ => println!("ep target not in valid ep location")
+                }
+            }
+        } else if let Some(new_piece) = promotion {
+            self.contents[to.0][to.1] = Some(new_piece);
+
+        } else if distance_moved == 2 {
+            self.en_passant_target = if to.0 == 3 {Some((2, to.1))} else {Some((5, to.1))}
+        } else {
+            self.en_passant_target = None;
+        }
+    } 
+
+    fn king_movement(&mut self, from: (usize, usize), to: (usize, usize)) {
+        let distance_moved = if to.1 > from.1 {to.1 - from.1} else {from.1 - to.1};
+    }
+
+}
+
 
 pub fn fen_to_pgn(fen: String, ambiguous_moves: Vec<String>) -> Vec<String> {
     let mut board: Vec<Vec<String>> = vec![vec![".".to_string(); 8]; 8];
