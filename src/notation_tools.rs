@@ -65,19 +65,13 @@ impl PieceLocator {
         file += self.search_direction.1;
 
         while (0..8).contains(&rank) && (0..8).contains(&file) {
-            println!("looking for {:?} at rank {} file {}", self.target.name, rank, file);
             if let Some(current) = self.board.contents[rank as usize][file as usize] {
-                println!("{:?} located", current);
                 if (current.name == self.target.name) && (current.color == self.target.color) {
-                    println!("Matched");
                     if let Some(rank_restriction) = self.scope_restriction.0 {
-                        println!("Rank restriction blocked match");
                         if rank as usize != rank_restriction { break; }
                     } else if let Some(file_restriction)= self.scope_restriction.1 {
-                        println!("File restriction blocked match");
                         if file as usize != file_restriction { break; }
                     }
-                    println!("attempting to return {}, {}", rank as usize, file as usize);
                     return Some((rank as usize, file as usize));
                 }
                 break; 
@@ -116,6 +110,55 @@ impl Default for Board {
 }
 
 impl Board {
+    pub fn to_fen(&self, color: PieceColor) -> String {
+        let mut fen = String::new();
+
+        for row in &self.contents {
+            let mut empty_count = 0;
+
+            for &cell in row {
+                match cell {
+                    Some(piece) => {
+                        if empty_count > 0 {
+                            fen.push_str(&empty_count.to_string());
+                            empty_count = 0; // Reset the empty count
+                        }
+
+                        let piece_char = match piece {
+                            Piece { name: PieceName::Pawn, color } => if color == PieceColor::White { 'P' } else { 'p' },
+                            Piece { name: PieceName::Knight, color } => if color == PieceColor::White { 'N' } else { 'n' },
+                            Piece { name: PieceName::Bishop, color } => if color == PieceColor::White { 'B' } else { 'b' },
+                            Piece { name: PieceName::Rook, color } => if color == PieceColor::White { 'R' } else { 'r' },
+                            Piece { name: PieceName::Queen, color } => if color == PieceColor::White { 'Q' } else { 'q' },
+                            Piece { name: PieceName::King, color } => if color == PieceColor::White { 'K' } else { 'k' },
+                        };
+                        fen.push(piece_char);
+                    }
+                    None => {
+                        empty_count += 1;
+                    }
+                }
+            }
+
+            if empty_count > 0 {
+                fen.push_str(&empty_count.to_string());
+            }
+
+            fen.push('/');
+        }
+
+        if fen.ends_with('/') {
+            fen.pop();
+        }
+
+        let move_char = if color == PieceColor::White {'w'} else {'b'};
+
+        let additional_info = format!(" {} - - 0 1", move_char);
+        fen.push_str(&additional_info);
+
+        fen
+    }
+
     pub fn print(&self) {
         for row in self.contents.iter().rev() {
             for square in row.iter() {
@@ -160,7 +203,7 @@ impl Board {
                 match to.0 {
                     2 => self.contents[to.0 - 1][to.1] = None,
                     5 => self.contents[to.0 + 1][to.1] = None,
-                    _ => println!("ep target not in valid ep location")
+                    _ => println!("ERROR ep target not in valid ep location")
                 }
             }
         } else if let Some(new_piece) = promotion {
@@ -179,8 +222,8 @@ impl Board {
         if distance_moved > 1 {
             match to.1 {
                 2 => self.normal_movement((from.0, 0), (from.0, 3)),
-                7 => self.normal_movement((from.0, 7), (from.0, 6)),
-                _ => println!("castling king landed at incorrect location")
+                7 => self.normal_movement((from.0, 7), (from.0, 5)),
+                _ => println!("ERROR castling king landed at incorrect location")
             }
         } else {
             self.normal_movement(from, to);
@@ -258,7 +301,31 @@ impl Board {
                 println!("Pawn searched for origin square as if it were another piece")
             }
         }
-        println!("find_origin_of_move: No piece was located...");
+        println!("find_origin_of_move: ERROR No piece was located...");
+        None
+    }
+
+    pub fn find_origin_of_pawn_move(
+        &self,
+        end_square: (usize, usize), 
+        piece_color: PieceColor, 
+        file_restriction: Option<usize>
+    ) -> Option<(usize, usize)> {
+        println!("expecting pawn");
+        let pawn = Piece { name: PieceName::Pawn, color: piece_color };
+        let search_direction = if piece_color == PieceColor::White {(-1, 0)} else {(1, 0)};
+        let search_from = if let Some(file) = file_restriction {(end_square.0, file)} else {end_square};
+        if let Some(origin) = PieceLocator::new(
+            search_from, 
+            pawn, 
+            search_direction, 
+            (None, None), 
+            &self.clone(), 
+            false
+        ).locate() {
+            return Some(origin);
+        }
+        println!("find_origin_of_pawn_move: No pawn move found");
         None
     }
 }
@@ -266,11 +333,137 @@ impl Board {
 fn find_piece_location(locators: Vec<PieceLocator>) -> Option<(usize, usize)> {
     for locator in locators {
         if let Some(coords) = locator.locate() {
-            println!("find_piece_location: Got coords from matched locator");
             return Some(coords);
         }
     }
     None
+}
+
+fn piecename_from_char(c: char) -> PieceName {
+    match c {
+        'K' => PieceName::King,
+        'N' => PieceName::Knight,
+        'B' => PieceName::Bishop,
+        'Q' => PieceName::Queen,
+        'R' => PieceName::Rook,
+        _ => {
+            println!("piecename_from_char: no matching piece for char {}", c);
+            PieceName::King
+        }
+    }
+}
+
+fn file_idx_from_char(c: char) -> usize {
+    if ('a'..='f').contains(&c) {
+        (c as usize) - ('a' as usize)
+    } else {
+        println!("file_idx_from_char: no matching file for char {}", c);
+        0
+    }
+}
+
+// using parity, keep track of which player's move this is
+// strip instances of "+" or "#" from the end of every move 
+// if move is "O-O" or "O-O-O", it should return the appropriate king move for handle_king_move
+// if move starts with lowercase, it is a pawn move. if "=x" at the end, the pawn promotes to x after moving
+
+// otherwise, this is a normal move
+// read all characters except for "x" between the initial piece name and the final square rank
+// if either a file or rank is given in addition to the final square, need to pass it as scope_restriction when searching
+// if both are given, no need to search; we know where this piece comes from already
+
+// locate the piece and call normal_movement to handle its movement
+
+pub fn pgn_to_fen(pgn_string: &str) -> String {
+    let plys: Vec<String> = pgn_string
+        .split_whitespace() 
+        .map(|s| {
+            let mut cleaned = s.to_string();
+            if cleaned.ends_with('+') || cleaned.ends_with('#') {
+                cleaned.pop();
+            }
+            cleaned
+        })
+        .collect();
+
+    let mut board = Board::default();
+
+    let mut turn = PieceColor::White;
+
+    for ply in plys {
+        board.print();
+        if &ply == "O-O" {
+            match turn {
+                PieceColor::White => board.king_movement((0, 4), (0, 6)),
+                PieceColor::Black => board.king_movement((7, 4), (7, 6))
+            }
+        } else if &ply == "O-O-O" {
+            match turn {
+                PieceColor::White => board.king_movement((0, 4), (0, 2)),
+                PieceColor::Black => board.king_movement((7, 4), (7, 2))
+            }
+        } else {
+            let mut ply_chars: Vec<char> = ply.chars().collect();
+            let to: (usize, usize);
+            if (ply_chars[0]).is_lowercase() {
+                let mut promotion: Option<Piece> = None;
+
+                if ply_chars[ply_chars.len() - 2] == '=' {
+                    promotion = Some(Piece { 
+                        name: piecename_from_char(ply_chars[ply_chars.len()-1]),
+                        color: turn
+                    });
+                }
+
+                if ply_chars[1] == 'x' {
+                    let search_file: usize;
+                    let r = ply_chars[3].to_digit(10)
+                        .expect("pgn_to_fen: failed to convert digit to usize") as usize;
+                    to = (r-1, file_idx_from_char(ply_chars[2]));
+                    search_file = file_idx_from_char(ply_chars[0]);
+                    if let Some(from) = board.find_origin_of_pawn_move(
+                        to,
+                        turn,
+                        Some(search_file)
+                    ) {
+                        board.pawn_movement(from, to, promotion);
+                    }
+                } else {
+                    let r = ply_chars[1].to_digit(10)
+                        .expect("pgn_to_fen: failed to convert digit to usize") as usize;
+                    to = (r-1, file_idx_from_char(ply_chars[0]));
+                    if let Some(from) = board.find_origin_of_pawn_move(
+                        to, 
+                        turn, 
+                        None
+                    ) {
+                        board.pawn_movement(from, to, promotion)
+                    }
+                }
+            } else {
+                ply_chars.retain(|&c| c != 'x');
+                let piece = Piece {
+                    name: piecename_from_char(ply_chars[0]),
+                    color: turn
+                };
+                let r = ply_chars[ply_chars.len()-1].to_digit(10)
+                    .expect("pgn_to_fen: failed to convert digit to usize") as usize;
+                to = (r-1, file_idx_from_char(ply_chars[ply_chars.len()-2]));
+                if let Some(from) = board.find_origin_of_move(
+                    to, 
+                    piece.name, 
+                    piece.color, 
+                    (None, None)
+                ) {
+                    board.normal_movement(from, to);
+                }
+            }
+        }
+
+        turn = if turn == PieceColor::White { PieceColor::Black } else { PieceColor::White };
+    }
+
+    return board.to_fen(turn);
 }
 
 // 2 am trash coding session function that works correctly on the first test goes so hard
