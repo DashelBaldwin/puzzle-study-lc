@@ -1,14 +1,6 @@
 // notation_tools.rs
 
-// yes I know this is lazy but it works and I tested it and I don't want to attempt
-// to refactor it again because weird edge cases break and they don't break here somehow 
-
-// this converts an FEN string and the following non-descriptive positional notation moves (e.g. "f7h8")
-// into a minimal PGN format; adding check + checkmate annotations and only adding disambiguations when
-// necessary is not required for lichess to parse the file properly. however, creating a board to handle
-// other special cases like en passant and promotion is still required, hence why this is so messy
-
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 enum PieceName {
     Pawn,
     Knight,
@@ -18,13 +10,13 @@ enum PieceName {
     King
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 enum PieceColor {
     White,
     Black
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 struct Piece {
     name: PieceName,
     color: PieceColor
@@ -34,6 +26,57 @@ struct Piece {
 struct Board {
     contents: [[Option<Piece>; 8]; 8],
     en_passant_target: Option<(usize, usize)>
+}
+
+struct PieceLocator {
+    origin: (usize, usize),
+    target: Piece,
+    search_direction: (i32, i32),
+    scope_restriction: (Option<usize>, Option<usize>),
+    board: Board,
+    is_jumper: bool
+}
+
+impl PieceLocator {
+    fn new(
+        origin: (usize, usize),
+        target: Piece,
+        search_direction: (i32, i32),
+        scope_restriction: (Option<usize>, Option<usize>),
+        board: Board,
+        is_jumper: bool,
+    ) -> Self {
+        Self {
+            origin,
+            search_direction,
+            target,
+            scope_restriction,
+            board,
+            is_jumper,
+        }
+    }
+
+    fn locate(&self) -> Option<(usize, usize)> {
+        let mut rank = self.origin.0 as i32;
+        let mut file = self.origin.1 as i32;
+
+        rank += self.search_direction.0;
+        file += self.search_direction.1;
+
+        while (0..8).contains(&rank) && (0..8).contains(&file) {
+            if let Some(current) = self.board.contents[rank as usize][file as usize] {
+                if current == self.target {
+                    Some((rank as usize, file as usize));
+                } else { break; }
+            }
+
+            if self.is_jumper { break; }
+
+            rank += self.search_direction.0;
+            file += self.search_direction.1;
+        }
+        None
+    }
 }
 
 
@@ -91,11 +134,23 @@ impl Board {
 
     fn king_movement(&mut self, from: (usize, usize), to: (usize, usize)) {
         let distance_moved = if to.1 > from.1 {to.1 - from.1} else {from.1 - to.1};
+
+        if distance_moved > 1 {
+            match to.1 {
+                2 => self.normal_movement((from.0, 0), (from.0, 3)),
+                7 => self.normal_movement((from.0, 7), (from.0, 6)),
+                _ => println!("castling king landed at incorrect location")
+            }
+        } else {
+            self.normal_movement(from, to);
+        }
     }
 
 }
 
 
+// 2 am trash coding session derived function that works correctly on the first test goes so hard
+// if you're reading this, pray for me that this never breaks
 pub fn fen_to_pgn(fen: String, ambiguous_moves: Vec<String>) -> Vec<String> {
     let mut board: Vec<Vec<String>> = vec![vec![".".to_string(); 8]; 8];
 
@@ -126,6 +181,7 @@ pub fn fen_to_pgn(fen: String, ambiguous_moves: Vec<String>) -> Vec<String> {
         -1
     };
 
+    // waow 
     let mut moves: Vec<String> = Vec::new();
     for ambiguous_move in ambiguous_moves {
         let start_file = ambiguous_move.chars().nth(0).unwrap();
@@ -143,7 +199,6 @@ pub fn fen_to_pgn(fen: String, ambiguous_moves: Vec<String>) -> Vec<String> {
 
         let mut was_double_pawn_move = false;
 
-        // waow 
         if piece == "K" && (start_rank_index == 0 || start_rank_index == 7) && start_file_index == 4 {
             if end_file_index == 6 {
                 moves.push("O-O".to_string());
