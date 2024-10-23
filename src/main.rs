@@ -1,8 +1,10 @@
 // main.rs
 
+// TODO: make directly imported puzzles correctly say they were imported from id, instead of from puzzle history
+// TODO: start working on the cli application
+// TODO: restructure project to conform to rust conventions, split this file (and possibly notation_tools) into more specialized files
+// Possible TODO: also allow chess.com puzzle exported pgns as input for convenience
 // Possible TODO: make auto generation skip puzzles manually imported into the same set by user to prevent duplicates
-// FIX: one-move puzzles don't generate info comments
-
 
 use serde::{Serialize, Deserialize};
 use std::error::Error;
@@ -386,6 +388,7 @@ async fn clear_study(study_id: &str, mut ids: Vec<String>, include_first_chapter
 
 
 async fn clear_and_upload(study_id: &str, mut puzzles: Vec<Puzzle>) -> Result<(), Box<dyn Error>> {
+    println!("Getting study chapter IDs...");
     let chapter_ids = get_study_chapter_ids(study_id).await?;
     let minimum_chapter_id = (&chapter_ids[0]).to_string();
     let first_puzzle = puzzles.remove(0);
