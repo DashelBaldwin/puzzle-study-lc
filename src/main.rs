@@ -13,7 +13,7 @@ use std::error::Error;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use reqwest::Client;
 
-mod notation_tools;
+mod notation_utils;
 
 const PAT: &str = "lip_4706DGPceC0b3H9YRO5x";
 const PAGE_SIZE: i32 = 50;
@@ -82,7 +82,7 @@ impl Puzzle {
         let fen_regions: Vec<&str> = self.fen.split_whitespace().collect(); 
         let puzzle_color = fen_regions[1];
 
-        let pgn_moves = notation_tools::fen_to_pgn(self.fen.clone(), self.solution.clone());
+        let pgn_moves = notation_utils::fen_to_pgn::fen_to_pgn(self.fen.clone(), self.solution.clone());
         
         let mut pgn_output: String;
 
@@ -163,7 +163,7 @@ async fn get_puzzle_from_id(id: &str) -> Result<Puzzle, Box<dyn Error>> {
                     rating: direct_puzzle.puzzle.rating,
                     solution: direct_puzzle.puzzle.solution,
                     themes: direct_puzzle.puzzle.themes,
-                    fen: notation_tools::pgn_to_fen(&direct_puzzle.game.pgn)
+                    fen: notation_utils::pgn_to_fen(&direct_puzzle.game.pgn)
                 };
                 println!("{}, {}", puzzle.fen, puzzle.id);
                 Ok(puzzle)
@@ -409,10 +409,7 @@ async fn clear_and_upload(study_id: &str, mut puzzles: Vec<Puzzle>) -> Result<()
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    // clear_and_upload("mP8agodj", puzzle_history).await?;
-
     let puzzles = get_last_n_incorrect_puzzles(64).await?;
-
     clear_and_upload("l2Yn1iSK", puzzles).await?;
 
     Ok(())
