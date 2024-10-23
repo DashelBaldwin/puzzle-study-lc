@@ -89,7 +89,7 @@ impl Puzzle {
                 let move_number = i / 2 + 1;
                 let is_player_move = i % 2 == 0;
     
-                if i == self.solution.len() - 1 {
+                if (i == self.solution.len() - 1) || self.solution.len() == 1 {
                     pgn_output.push_str(&format!("{}.", move_number));
                     pgn_output.push_str(&format!(" {}", mv));
                     pgn_output.push_str(&format!(" {{ {} }} ", self.info_comment()));
@@ -406,9 +406,9 @@ async fn clear_and_upload(study_id: &str, mut puzzles: Vec<Puzzle>) -> Result<()
 async fn main() -> Result<(), Box<dyn Error>> {
     // clear_and_upload("mP8agodj", puzzle_history).await?;
 
-    let puzzles = get_puzzles_from_ids(vec!["Loh8D", "oF7Ap"]).await?;
+    let puzzles = get_last_n_incorrect_puzzles(15).await?;
 
-    clear_and_upload("mP8agodj", puzzles).await?;
+    clear_and_upload("l2Yn1iSK", puzzles).await?;
 
     Ok(())
 }

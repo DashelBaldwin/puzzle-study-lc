@@ -524,7 +524,10 @@ pub fn fen_to_pgn(fen: String, ambiguous_moves: Vec<String>) -> Vec<String> {
 
         let mut was_double_pawn_move = false;
 
-        if piece == "K" && (start_rank_index == 0 || start_rank_index == 7) && start_file_index == 4 {
+        if piece == "K" 
+            && (start_rank_index == 0 || start_rank_index == 7) 
+            && start_file_index == 4 
+            && (end_file_index == 6 || end_file_index == 2) {
             if end_file_index == 6 {
                 moves.push("O-O".to_string());
                 board[start_rank_index][7] = ".".to_string();
