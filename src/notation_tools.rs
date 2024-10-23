@@ -113,7 +113,7 @@ impl Board {
     fn to_fen(&self, color: PieceColor) -> String {
         let mut fen = String::new();
 
-        for row in &self.contents {
+        for row in self.contents.iter().rev() {
             let mut empty_count = 0;
 
             for &cell in row {
@@ -159,7 +159,7 @@ impl Board {
         fen
     }
 
-    fn print(&self) {
+    fn _debug_print(&self) {
         for row in self.contents.iter().rev() {
             for square in row.iter() {
                 match square {
@@ -384,8 +384,6 @@ pub fn pgn_to_fen(pgn_string: &str) -> String {
     let mut turn = PieceColor::White;
 
     for ply in plys {
-        board.print();
-        println!("{}\n", ply);
         if &ply == "O-O" {
             match turn {
                 PieceColor::White => board.king_movement((0, 4), (0, 6)),
@@ -473,8 +471,6 @@ pub fn pgn_to_fen(pgn_string: &str) -> String {
 
         turn = if turn == PieceColor::White { PieceColor::Black } else { PieceColor::White };
     }
-
-    board.print();
     return board.to_fen(turn);
 }
 

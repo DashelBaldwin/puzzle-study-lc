@@ -31,24 +31,24 @@ struct PuzzleAttempt {
     date: i64
 }
 
-// #[derive(Deserialize)]
-// struct DirectPuzzleData {
-//     game: DirectPuzzleGameData,
-//     puzzle: DirectPuzzle
-// }
+#[derive(Deserialize)]
+struct DirectPuzzleData {
+    game: DirectPuzzleGameData,
+    puzzle: DirectPuzzle
+}
 
-// #[derive(Deserialize)]
-// struct DirectPuzzle {
-//     id: String,
-//     rating: i32,
-//     solution: Vec<String>,
-//     themes: Vec<String>,
-// }
+#[derive(Deserialize)]
+struct DirectPuzzle {
+    id: String,
+    rating: i32,
+    solution: Vec<String>,
+    themes: Vec<String>,
+}
 
-// #[derive(Deserialize)]
-// struct DirectPuzzleGameData {
-//     pgn: String
-// }
+#[derive(Deserialize)]
+struct DirectPuzzleGameData {
+    pgn: String
+}
 
 
 impl Puzzle {
@@ -82,7 +82,7 @@ impl Puzzle {
         
         let mut pgn_output: String;
 
-        // lazy code alert!
+        // lazy alert!
         if puzzle_color == "w" {
             pgn_output = "{ White to move }\n".to_string();
             for (i, mv) in pgn_moves.iter().enumerate() {
@@ -136,48 +136,56 @@ fn parse_puzzle(json_str: &str) -> serde_json::Result<PuzzleAttempt> {
 }
 
 
-// fn parse_direct_puzzle(json_str: &str) -> serde_json::Result<DirectPuzzleData> {
-//     let direct_puzzle_data: DirectPuzzleData = serde_json::from_str(json_str)?;
-//     Ok(direct_puzzle_data)
-// }
+fn parse_direct_puzzle(json_str: &str) -> serde_json::Result<DirectPuzzleData> {
+    let direct_puzzle_data: DirectPuzzleData = serde_json::from_str(json_str)?;
+    Ok(direct_puzzle_data)
+}
 
 
-// async fn get_puzzle_from_id(id: String) -> Result<Puzzle, Box<dyn Error>> {
-//     let client = reqwest::Client::new();
+async fn get_puzzle_from_id(id: &str) -> Result<Puzzle, Box<dyn Error>> {
+    let client = reqwest::Client::new();
 
-//     let response = client
-//         .get(format!("https://lichess.org/api/puzzle/{}", id))
-//         .send()
-//         .await?;
+    let response = client
+        .get(format!("https://lichess.org/api/puzzle/{}", id))
+        .send()
+        .await?;
 
-//     if response.status().is_success() {
-//         let body = response.text().await?;
-//         match parse_puzzle(&body) {
-//             Ok(puzzle_attempt) => {
-//                 Ok(puzzle_attempt.puzzle)
-//             }
-//             Err(e) => {
-//                 eprintln!("Failed to parse puzzle: {}", e);
-//                 Err(Box::from(e))
-//             }
-//         }
+    if response.status().is_success() {
+        let body = response.text().await?;
+        match parse_direct_puzzle(&body) {
+            Ok(direct_puzzle) => {
+                let puzzle = Puzzle {
+                    id: id.to_string(),
+                    rating: direct_puzzle.puzzle.rating,
+                    solution: direct_puzzle.puzzle.solution,
+                    themes: direct_puzzle.puzzle.themes,
+                    fen: notation_tools::pgn_to_fen(&direct_puzzle.game.pgn)
+                };
+                println!("{}, {}", puzzle.fen, puzzle.id);
+                Ok(puzzle)
+            }
+            Err(e) => {
+                eprintln!("Failed to parse puzzle: {}", e);
+                Err(Box::from(e))
+            }
+        }
 
-//     } else {
-//         Err(Box::from(format!("API request error: {}", response.status())))
-//     }
+    } else {
+        Err(Box::from(format!("API request error: {}", response.status())))
+    }
 
-// }
+}
 
 
-// async fn get_puzzles_from_ids(ids: Vec<String>) -> Result<Vec<Puzzle>, Box<dyn Error>> {
-//     let mut puzzles: Vec<Puzzle> = Vec::new();
+async fn get_puzzles_from_ids(ids: Vec<&str>) -> Result<Vec<Puzzle>, Box<dyn Error>> {
+    let mut puzzles: Vec<Puzzle> = Vec::new();
 
-//     for id in ids {
-//         puzzles.push(get_puzzle_from_id(id).await?);
-//     }
+    for id in ids {
+        puzzles.push(get_puzzle_from_id(id).await?);
+    }
 
-//     Ok(puzzles)
-// }
+    Ok(puzzles)
+}
 
 
 async fn get_puzzle_history_incorrect_page(max: i32, before_date: i64) -> Result<(Vec<Puzzle>, i64), Box<dyn Error>> {
@@ -398,8 +406,9 @@ async fn clear_and_upload(study_id: &str, mut puzzles: Vec<Puzzle>) -> Result<()
 async fn main() -> Result<(), Box<dyn Error>> {
     // clear_and_upload("mP8agodj", puzzle_history).await?;
 
-    println!("{}", notation_tools::pgn_to_fen("d4 d5 Nc3 Nc6 Bf4 Bf5 Qd3 Qd6 O-O-O O-O-O e3 e6"));
+    let puzzles = get_puzzles_from_ids(vec!["Loh8D", "oF7Ap"]).await?;
+
+    clear_and_upload("mP8agodj", puzzles).await?;
 
     Ok(())
 }
-
