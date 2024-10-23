@@ -355,21 +355,9 @@ fn file_idx_from_char(c: char) -> usize {
     }
 }
 
-// using parity, keep track of which player's move this is
-// strip instances of "+" or "#" from the end of every move 
-// if move is "O-O" or "O-O-O", it should return the appropriate king move for handle_king_move
-// if move starts with lowercase, it is a pawn move. if "=x" at the end, the pawn promotes to x after moving
-
-// otherwise, this is a normal move
-// read all characters except for "x" between the initial piece name and the final square rank
-// if either a file or rank is given in addition to the final square, need to pass it as scope_restriction when searching
-// if both are given, no need to search; we know where this piece comes from already
-
-// locate the piece and call normal_movement to handle its movement
-
 pub fn pgn_to_fen(pgn_string: &str) -> String {
     let plys: Vec<String> = pgn_string
-        .split_whitespace() 
+        .split_whitespace()
         .map(|s| {
             let mut cleaned = s.to_string();
             if cleaned.ends_with('+') || cleaned.ends_with('#') {
@@ -380,99 +368,97 @@ pub fn pgn_to_fen(pgn_string: &str) -> String {
         .collect();
 
     let mut board = Board::default();
-
     let mut turn = PieceColor::White;
 
     for ply in plys {
-        if &ply == "O-O" {
-            match turn {
+        match ply.as_str() {
+            "O-O" => match turn {
                 PieceColor::White => board.king_movement((0, 4), (0, 6)),
-                PieceColor::Black => board.king_movement((7, 4), (7, 6))
-            }
-        } else if &ply == "O-O-O" {
-            match turn {
+                PieceColor::Black => board.king_movement((7, 4), (7, 6)),
+            },
+            "O-O-O" => match turn {
                 PieceColor::White => board.king_movement((0, 4), (0, 2)),
-                PieceColor::Black => board.king_movement((7, 4), (7, 2))
-            }
-        } else {
-            let mut ply_chars: Vec<char> = ply.chars().collect();
-            let to: (usize, usize);
-            if (ply_chars[0]).is_lowercase() {
-                let mut promotion: Option<Piece> = None;
+                PieceColor::Black => board.king_movement((7, 4), (7, 2)),
+            },
+            _ => {
+                let mut ply_chars: Vec<char> = ply.chars().collect();
+                let to: (usize, usize);
 
-                if ply_chars[ply_chars.len() - 2] == '=' {
-                    promotion = Some(Piece { 
-                        name: piecename_from_char(ply_chars[ply_chars.len()-1]),
-                        color: turn
-                    });
-                }
+                if ply_chars[0].is_lowercase() {
+                    let mut promotion: Option<Piece> = None;
 
-                if ply_chars[1] == 'x' {
-                    let search_file: usize;
-                    let r = ply_chars[3].to_digit(10)
-                        .expect("pgn_to_fen: failed to convert digit to usize") as usize;
-                    to = (r-1, file_idx_from_char(ply_chars[2]));
-                    search_file = file_idx_from_char(ply_chars[0]);
-                    if let Some(from) = board.find_origin_of_pawn_move(
-                        to,
-                        turn,
-                        Some(search_file)
-                    ) {
-                        board.pawn_movement(from, to, promotion);
+                    if ply_chars[ply_chars.len() - 2] == '=' {
+                        promotion = Some(Piece {
+                            name: piecename_from_char(ply_chars[ply_chars.len() - 1]),
+                            color: turn,
+                        });
+                    }
+
+                    if ply_chars[1] == 'x' {
+                        let r = ply_chars[3].to_digit(10)
+                            .expect("pgn_to_fen: failed to convert digit to usize") as usize;
+                        to = (r - 1, file_idx_from_char(ply_chars[2]));
+                        let search_file = file_idx_from_char(ply_chars[0]);
+                        
+                        if let Some(from) = board.find_origin_of_pawn_move(to, turn, Some(search_file)) {
+                            board.pawn_movement(from, to, promotion);
+                        }
+                    } else {
+                        let r = ply_chars[1].to_digit(10)
+                            .expect("pgn_to_fen: failed to convert digit to usize") as usize;
+                        to = (r - 1, file_idx_from_char(ply_chars[0]));
+
+                        if let Some(from) = board.find_origin_of_pawn_move(to, turn, None) {
+                            board.pawn_movement(from, to, promotion);
+                        }
                     }
                 } else {
-                    let r = ply_chars[1].to_digit(10)
+                    ply_chars.retain(|&c| c != 'x');
+                    let piece = Piece {
+                        name: piecename_from_char(ply_chars[0]),
+                        color: turn,
+                    };
+                    let r = ply_chars[ply_chars.len() - 1].to_digit(10)
                         .expect("pgn_to_fen: failed to convert digit to usize") as usize;
-                    to = (r-1, file_idx_from_char(ply_chars[0]));
-                    if let Some(from) = board.find_origin_of_pawn_move(
-                        to, 
-                        turn, 
-                        None
-                    ) {
-                        board.pawn_movement(from, to, promotion)
+                    to = (r - 1, file_idx_from_char(ply_chars[ply_chars.len() - 2]));
+
+                    let mut scope_restriction: (Option<usize>, Option<usize>) = (None, None);
+
+                    match ply_chars.len() {
+                        5 => {
+                            scope_restriction.0 = Some(ply_chars[2].to_digit(10)
+                                .expect("pgn_to_fen: failed to convert digit to usize") as usize);
+                            scope_restriction.1 = Some(file_idx_from_char(ply_chars[1]));
+                        }
+                        4 => {
+                            let token = ply_chars[1];
+                            if token.is_digit(10) {
+                                scope_restriction.0 = Some(token.to_digit(10)
+                                    .expect("pgn_to_fen: failed to convert digit to usize") as usize);
+                            } else {
+                                scope_restriction.1 = Some(file_idx_from_char(token));
+                            }
+                        }
+                        _ => {}
                     }
-                }
-            } else {
-                ply_chars.retain(|&c| c != 'x');
-                let piece = Piece {
-                    name: piecename_from_char(ply_chars[0]),
-                    color: turn
-                };
-                let r = ply_chars[ply_chars.len()-1].to_digit(10)
-                    .expect("pgn_to_fen: failed to convert digit to usize") as usize;
-                to = (r-1, file_idx_from_char(ply_chars[ply_chars.len()-2]));
-                let mut scope_restriction: (Option<usize>, Option<usize>) = (None, None);
 
-                if ply_chars.len() == 5 {
-                    scope_restriction.0 = Some(ply_chars[2].to_digit(10)
-                        .expect("pgn_to_fen: failed to convert digit to usize") as usize);
-                    scope_restriction.1 = Some(file_idx_from_char(ply_chars[1]));
-
-                } else if ply_chars.len() == 4 {
-                    let token: char = ply_chars[1];
-                    if token.is_digit(10) {
-                        scope_restriction.0 = Some(token.to_digit(10)
-                        .expect("pgn_to_fen: failed to convert digit to usize") as usize);
-                    } else {
-                        scope_restriction.1 = Some(file_idx_from_char(token));
+                    if let Some(from) = board.find_origin_of_move(to, piece.name, piece.color, scope_restriction) {
+                        board.normal_movement(from, to);
                     }
-                }
-
-                if let Some(from) = board.find_origin_of_move(
-                    to, 
-                    piece.name, 
-                    piece.color, 
-                    scope_restriction
-                ) {
-                    board.normal_movement(from, to);
                 }
             }
         }
 
-        turn = if turn == PieceColor::White { PieceColor::Black } else { PieceColor::White };
+        turn = if turn == PieceColor::White {
+            PieceColor::Black
+        } else {
+            PieceColor::White
+        };
     }
-    return board.to_fen(turn);
+
+    board.to_fen(turn)
 }
+
 
 // 2 am trash coding session function that works correctly on the first test goes so hard
 // if you're reading this, pray that this never breaks
@@ -501,12 +487,11 @@ pub fn fen_to_pgn(fen: String, ambiguous_moves: Vec<String>) -> Vec<String> {
     }
 
     let mut ep_file: i32 = if fen_regions[10] != "-" {
-        (fen_regions[10].chars().nth(0).unwrap() as usize -('a' as usize)) as i32
+        (fen_regions[10].chars().nth(0).unwrap() as usize - ('a' as usize)) as i32
     } else {
         -1
     };
 
-    // waow 
     let mut moves: Vec<String> = Vec::new();
     for ambiguous_move in ambiguous_moves {
         let start_file = ambiguous_move.chars().nth(0).unwrap();
@@ -527,7 +512,8 @@ pub fn fen_to_pgn(fen: String, ambiguous_moves: Vec<String>) -> Vec<String> {
         if piece == "K" 
             && (start_rank_index == 0 || start_rank_index == 7) 
             && start_file_index == 4 
-            && (end_file_index == 6 || end_file_index == 2) {
+            && (end_file_index == 6 || end_file_index == 2) 
+        {
             if end_file_index == 6 {
                 moves.push("O-O".to_string());
                 board[start_rank_index][7] = ".".to_string();
@@ -565,6 +551,7 @@ pub fn fen_to_pgn(fen: String, ambiguous_moves: Vec<String>) -> Vec<String> {
         } else {
             moves.push(format!("{}{}{}{}{}", piece, start_file, start_rank, end_file, end_rank));
         }
+
         board[end_rank_index][end_file_index] = piece;
 
         if was_double_pawn_move {
@@ -573,5 +560,6 @@ pub fn fen_to_pgn(fen: String, ambiguous_moves: Vec<String>) -> Vec<String> {
             ep_file = -1;
         }
     }
+
     moves
 }

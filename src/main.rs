@@ -1,9 +1,11 @@
 // main.rs
 
+// TODO: restructure project
+
 // TODO: make directly imported puzzles correctly say they were imported from id, instead of from puzzle history
 // TODO: start working on the cli application
-// TODO: restructure project to conform to rust conventions, split this file (and possibly notation_tools) into more specialized files
-// Possible TODO: also allow chess.com puzzle exported pgns as input for convenience
+
+// Possible TODO: also allow pasting chess.com puzzle exported pgns into cli as input for convenience
 // Possible TODO: make auto generation skip puzzles manually imported into the same set by user to prevent duplicates
 
 use serde::{Serialize, Deserialize};
@@ -409,7 +411,7 @@ async fn clear_and_upload(study_id: &str, mut puzzles: Vec<Puzzle>) -> Result<()
 async fn main() -> Result<(), Box<dyn Error>> {
     // clear_and_upload("mP8agodj", puzzle_history).await?;
 
-    let puzzles = get_last_n_incorrect_puzzles(15).await?;
+    let puzzles = get_last_n_incorrect_puzzles(64).await?;
 
     clear_and_upload("l2Yn1iSK", puzzles).await?;
 
