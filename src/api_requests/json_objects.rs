@@ -77,7 +77,7 @@ impl Puzzle {
                 let move_number = i / 2 + 1;
                 let is_player_move = i % 2 == 0;
     
-                if (i == self.solution.len() - 1) || self.solution.len() == 1 {
+                if i == self.solution.len() - 1 {
                     pgn_output.push_str(&format!("{}.", move_number));
                     pgn_output.push_str(&format!(" {}", mv));
                     pgn_output.push_str(&format!(" {{ {} }} ", self.info_comment()));
