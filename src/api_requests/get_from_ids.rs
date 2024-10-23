@@ -26,7 +26,6 @@ async fn get_puzzle_from_id(id: &str) -> Result<Puzzle, Box<dyn Error>> {
                     themes: direct_puzzle.puzzle.themes,
                     fen: notation_utils::pgn_to_fen::pgn_to_fen(&direct_puzzle.game.pgn)
                 };
-                println!("{}, {}", puzzle.fen, puzzle.id);
                 Ok(puzzle)
             }
             Err(e) => {

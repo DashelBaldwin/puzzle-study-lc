@@ -15,11 +15,10 @@ use api_requests::{get_from_ids::get_from_ids, get_last_n_incorrect::get_last_n_
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let mut puzzles = get_from_ids(vec!["sKGZw", "c5A8O", "f1kLA", "8K3p9"]).await?;
-    for puzzle in get_last_n_incorrect(4).await? {
+    let mut puzzles = get_from_ids(vec!["VwGJ7", "f1kLA", "c5A8O"]).await?;
+    for puzzle in get_last_n_incorrect(30).await? {
         puzzles.push(puzzle);
     }
-
     post_overwrite("n38KtP3G", puzzles).await?;
 
     Ok(())

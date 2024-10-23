@@ -153,7 +153,23 @@ impl Board {
 
         let move_char = if color == PieceColor::White {'w'} else {'b'};
 
-        let additional_info = format!(" {} - - 0 1", move_char);
+        let additional_info: String;
+
+        if let Some(ep_target) = self.en_passant_target {
+            if color == PieceColor::White {
+                let file = (b'a' + (ep_target.0) as u8) as char;
+            let rank = ep_target.1+1;
+            additional_info = format!(" {} KQkq {}{} 0 1", move_char, file, rank);
+            } else {
+                let file = (b'a' + (7-ep_target.0) as u8) as char;
+            let rank = (7-ep_target.1)+1;
+            additional_info = format!(" {} KQkq {}{} 0 1", move_char, file, rank);
+            }
+            
+        } else {
+            additional_info = format!(" {} KQkq - 0 1", move_char);
+        }
+        
         fen.push_str(&additional_info);
 
         fen
@@ -191,6 +207,7 @@ impl Board {
         let piece = self.contents[from.0][from.1].unwrap();
         self.contents[from.0][from.1] = None;
         self.contents[to.0][to.1] = Some(piece);
+        self.en_passant_target = None;
     }
 
     fn pawn_movement(&mut self, from: (usize, usize), to: (usize, usize), promotion: Option<Piece>) {
@@ -205,8 +222,10 @@ impl Board {
                     5 => self.contents[to.0 + 1][to.1] = None,
                     _ => println!("ERROR ep target not in valid ep location")
                 }
+                ()
             }
-        } else if let Some(new_piece) = promotion {
+        } 
+        if let Some(new_piece) = promotion {
             self.contents[to.0][to.1] = Some(new_piece);
 
         } else if distance_moved == 2 {
@@ -455,6 +474,5 @@ pub fn pgn_to_fen(pgn_string: &str) -> String {
             PieceColor::White
         };
     }
-
     board.to_fen(turn)
 }

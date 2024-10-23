@@ -42,7 +42,7 @@ pub fn fen_to_pgn(fen: String, ambiguous_moves: Vec<String>) -> Vec<String> {
         let end_file_index = end_file as usize - 'a' as usize;
         let end_rank_index = 8 - (end_rank.to_digit(10).unwrap() as usize);
 
-        let piece = board[start_rank_index][start_file_index].clone();
+        let mut piece = board[start_rank_index][start_file_index].clone();
         board[start_rank_index][start_file_index] = ".".to_string();
 
         let mut was_double_pawn_move = false;
@@ -82,6 +82,7 @@ pub fn fen_to_pgn(fen: String, ambiguous_moves: Vec<String>) -> Vec<String> {
             if end_rank_index == 0 || end_rank_index == 7 {
                 let promotion: String = ambiguous_move.chars().nth(4).unwrap().to_uppercase().collect();
                 pawn_move = format!("{}={}", pawn_move, promotion);
+                piece = promotion;
             }
             moves.push(pawn_move);
         } else if board[end_rank_index][end_file_index] != "." {
