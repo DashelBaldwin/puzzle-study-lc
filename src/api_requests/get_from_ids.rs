@@ -42,7 +42,7 @@ async fn get_puzzle_from_id(id: &str) -> Result<Puzzle, Box<dyn Error>> {
 }
 
 
-pub async fn get_puzzles_from_ids(ids: Vec<&str>) -> Result<Vec<Puzzle>, Box<dyn Error>> {
+pub async fn get_from_ids(ids: Vec<&str>) -> Result<Vec<Puzzle>, Box<dyn Error>> {
     let mut puzzles: Vec<Puzzle> = Vec::new();
 
     for id in ids {

@@ -117,12 +117,10 @@ impl Puzzle {
     }
 }
 
-
 pub fn parse_puzzle(json_str: &str) -> serde_json::Result<PuzzleAttempt> {
     let puzzle_attempt: PuzzleAttempt = serde_json::from_str(json_str)?;
     Ok(puzzle_attempt)
 }
-
 
 pub fn parse_direct_puzzle(json_str: &str) -> serde_json::Result<DirectPuzzleData> {
     let direct_puzzle_data: DirectPuzzleData = serde_json::from_str(json_str)?;
