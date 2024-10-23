@@ -3,10 +3,7 @@
 // Possible TODO: make auto generation skip puzzles manually imported into the same set by user to prevent duplicates
 // FIX: one-move puzzles don't generate info comments
 
-use notation_tools::pgn_to_fen;
-use notation_tools::Board;
-use notation_tools::PieceName;
-use notation_tools::PieceColor;
+
 use serde::{Serialize, Deserialize};
 use std::error::Error;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
@@ -401,8 +398,8 @@ async fn clear_and_upload(study_id: &str, mut puzzles: Vec<Puzzle>) -> Result<()
 async fn main() -> Result<(), Box<dyn Error>> {
     // clear_and_upload("mP8agodj", puzzle_history).await?;
 
-    let board = Board::default();
-    println!("{}", pgn_to_fen("d4 d5 Bf4 Bf5 Nf3 e6 c4 Nf6 Nc3 Bd6 Bg3 Nbd7 e3 O-O c5 Bxg3 hxg3 h6 Bd3 Ne4 Qc2 Ndf6 Nd2 Nxc3 Bxf5 exf5 bxc3 Ne4 Nxe4 fxe4 Rb1 b6 Rh5 bxc5 Rb5 cxd4 cxd4 c6 Qxc6 Rc8 Qxd5 Qf6 Qxe4 Rc1+ Ke2 Qa6 Qd5 Rc2+ Kf3 g6 Rxh6 Qf6+ Ke4"));
+    println!("{}", notation_tools::pgn_to_fen("d4 d5 Nc3 Nc6 Bf4 Bf5 Qd3 Qd6 O-O-O O-O-O e3 e6"));
 
     Ok(())
 }
+

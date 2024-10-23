@@ -1,7 +1,7 @@
 // notation_tools.rs
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum PieceName {
+enum PieceName {
     Pawn,
     Knight,
     Bishop,
@@ -11,7 +11,7 @@ pub enum PieceName {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum PieceColor {
+enum PieceColor {
     White,
     Black
 }
@@ -23,7 +23,7 @@ struct Piece {
 }
 
 #[derive(Debug, Clone)]
-pub struct Board {
+struct Board {
     contents: [[Option<Piece>; 8]; 8],
     en_passant_target: Option<(usize, usize)>
 }
@@ -110,7 +110,7 @@ impl Default for Board {
 }
 
 impl Board {
-    pub fn to_fen(&self, color: PieceColor) -> String {
+    fn to_fen(&self, color: PieceColor) -> String {
         let mut fen = String::new();
 
         for row in &self.contents {
@@ -159,7 +159,7 @@ impl Board {
         fen
     }
 
-    pub fn print(&self) {
+    fn print(&self) {
         for row in self.contents.iter().rev() {
             for square in row.iter() {
                 match square {
@@ -222,15 +222,14 @@ impl Board {
         if distance_moved > 1 {
             match to.1 {
                 2 => self.normal_movement((from.0, 0), (from.0, 3)),
-                7 => self.normal_movement((from.0, 7), (from.0, 5)),
+                6 => self.normal_movement((from.0, 7), (from.0, 5)),
                 _ => println!("ERROR castling king landed at incorrect location")
             }
-        } else {
-            self.normal_movement(from, to);
-        }
+        } 
+        self.normal_movement(from, to);
     }
 
-    pub fn find_origin_of_move(
+    fn find_origin_of_move(
         &self,
         end_square: (usize, usize), 
         piece_name: PieceName, 
@@ -251,14 +250,14 @@ impl Board {
             PieceLocator::new(end_square, piece, (-1, -1), scope_restriction, &self.clone(), false)
         ];
         let kn_locators: Vec<PieceLocator> = vec![
-            PieceLocator::new(end_square, piece, (1, 2), scope_restriction, &self.clone(), false),
-            PieceLocator::new(end_square, piece, (1, -2), scope_restriction, &self.clone(), false),
-            PieceLocator::new(end_square, piece, (2, 1), scope_restriction, &self.clone(), false),
-            PieceLocator::new(end_square, piece, (2, -1), scope_restriction, &self.clone(), false),
-            PieceLocator::new(end_square, piece, (-1, 2), scope_restriction, &self.clone(), false),
-            PieceLocator::new(end_square, piece, (-1, -2), scope_restriction, &self.clone(), false),
-            PieceLocator::new(end_square, piece, (-2, 1), scope_restriction, &self.clone(), false),
-            PieceLocator::new(end_square, piece, (-2, -1), scope_restriction, &self.clone(), false)
+            PieceLocator::new(end_square, piece, (1, 2), scope_restriction, &self.clone(), true),
+            PieceLocator::new(end_square, piece, (1, -2), scope_restriction, &self.clone(), true),
+            PieceLocator::new(end_square, piece, (2, 1), scope_restriction, &self.clone(), true),
+            PieceLocator::new(end_square, piece, (2, -1), scope_restriction, &self.clone(), true),
+            PieceLocator::new(end_square, piece, (-1, 2), scope_restriction, &self.clone(), true),
+            PieceLocator::new(end_square, piece, (-1, -2), scope_restriction, &self.clone(), true),
+            PieceLocator::new(end_square, piece, (-2, 1), scope_restriction, &self.clone(), true),
+            PieceLocator::new(end_square, piece, (-2, -1), scope_restriction, &self.clone(), true)
         ];
         let kg_locators: Vec<PieceLocator> = vec![
             PieceLocator::new(end_square, piece, (1, 1), scope_restriction, &self.clone(), true),
@@ -274,25 +273,20 @@ impl Board {
 
         match piece_name {
             PieceName::Rook => if let Some(origin) = find_piece_location(hv_locators) {
-                println!("expecting rook");
                 return Some(origin);
             }
             PieceName::Bishop => if let Some(origin) = find_piece_location(diag_locators) {
-                println!("expecting bishop");
                 return Some(origin);
             }
             PieceName::Queen => if let Some(origin) = find_piece_location(q_locators) {
-                println!("expecting queen");
                 return Some(origin);
             }
             PieceName::Knight => {
-                println!("expecting knight");
                 if let Some(origin) = find_piece_location(kn_locators) {
                     return Some(origin);
                 }
             }
             PieceName::King => {
-                println!("expecting king");
                 if let Some(origin) = find_piece_location(kg_locators) {
                     return Some(origin);
                 }
@@ -305,13 +299,12 @@ impl Board {
         None
     }
 
-    pub fn find_origin_of_pawn_move(
+    fn find_origin_of_pawn_move(
         &self,
         end_square: (usize, usize), 
         piece_color: PieceColor, 
         file_restriction: Option<usize>
     ) -> Option<(usize, usize)> {
-        println!("expecting pawn");
         let pawn = Piece { name: PieceName::Pawn, color: piece_color };
         let search_direction = if piece_color == PieceColor::White {(-1, 0)} else {(1, 0)};
         let search_from = if let Some(file) = file_restriction {(end_square.0, file)} else {end_square};
@@ -354,7 +347,7 @@ fn piecename_from_char(c: char) -> PieceName {
 }
 
 fn file_idx_from_char(c: char) -> usize {
-    if ('a'..='f').contains(&c) {
+    if ('a'..='h').contains(&c) {
         (c as usize) - ('a' as usize)
     } else {
         println!("file_idx_from_char: no matching file for char {}", c);
@@ -392,6 +385,7 @@ pub fn pgn_to_fen(pgn_string: &str) -> String {
 
     for ply in plys {
         board.print();
+        println!("{}\n", ply);
         if &ply == "O-O" {
             match turn {
                 PieceColor::White => board.king_movement((0, 4), (0, 6)),
@@ -449,11 +443,28 @@ pub fn pgn_to_fen(pgn_string: &str) -> String {
                 let r = ply_chars[ply_chars.len()-1].to_digit(10)
                     .expect("pgn_to_fen: failed to convert digit to usize") as usize;
                 to = (r-1, file_idx_from_char(ply_chars[ply_chars.len()-2]));
+                let mut scope_restriction: (Option<usize>, Option<usize>) = (None, None);
+
+                if ply_chars.len() == 5 {
+                    scope_restriction.0 = Some(ply_chars[2].to_digit(10)
+                        .expect("pgn_to_fen: failed to convert digit to usize") as usize);
+                    scope_restriction.1 = Some(file_idx_from_char(ply_chars[1]));
+
+                } else if ply_chars.len() == 4 {
+                    let token: char = ply_chars[1];
+                    if token.is_digit(10) {
+                        scope_restriction.0 = Some(token.to_digit(10)
+                        .expect("pgn_to_fen: failed to convert digit to usize") as usize);
+                    } else {
+                        scope_restriction.1 = Some(file_idx_from_char(token));
+                    }
+                }
+
                 if let Some(from) = board.find_origin_of_move(
                     to, 
                     piece.name, 
                     piece.color, 
-                    (None, None)
+                    scope_restriction
                 ) {
                     board.normal_movement(from, to);
                 }
@@ -463,6 +474,7 @@ pub fn pgn_to_fen(pgn_string: &str) -> String {
         turn = if turn == PieceColor::White { PieceColor::Black } else { PieceColor::White };
     }
 
+    board.print();
     return board.to_fen(turn);
 }
 
