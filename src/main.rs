@@ -8,143 +8,23 @@
 // Possible TODO: also allow pasting chess.com puzzle exported pgns into cli as input for convenience
 // Possible TODO: make auto generation skip puzzles manually imported into the same set by user to prevent duplicates
 
-use serde::{Serialize, Deserialize};
+use serde::Serialize;
 use std::error::Error;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use reqwest::Client;
 
 mod notation_utils;
+mod api_requests;
+
+use api_requests::json_objects::Puzzle;
+use api_requests::json_objects::DirectPuzzle;
+use api_requests::json_objects::DirectPuzzleGameData;
+use api_requests::json_objects::PuzzleAttempt;
+use api_requests::json_objects::parse_direct_puzzle;
+use api_requests::json_objects::parse_puzzle;
 
 const PAT: &str = "lip_4706DGPceC0b3H9YRO5x";
 const PAGE_SIZE: i32 = 50;
-
-#[derive(Deserialize)]
-#[derive(Clone)]
-struct Puzzle {
-    id: String,
-    rating: i32,
-    solution: Vec<String>,
-    themes: Vec<String>,
-    fen: String,
-}
-
-#[derive(Deserialize)]
-struct PuzzleAttempt {
-    win: bool,
-    puzzle: Puzzle, 
-    date: i64
-}
-
-#[derive(Deserialize)]
-struct DirectPuzzleData {
-    game: DirectPuzzleGameData,
-    puzzle: DirectPuzzle
-}
-
-#[derive(Deserialize)]
-struct DirectPuzzle {
-    id: String,
-    rating: i32,
-    solution: Vec<String>,
-    themes: Vec<String>,
-}
-
-#[derive(Deserialize)]
-struct DirectPuzzleGameData {
-    pgn: String
-}
-
-
-impl Puzzle {
-    fn info_comment(&self) -> String {
-        let link: String = format!("https://lichess.org/training/{}", self.id);
-        let comment: String = format!(
-            "{} (from puzzle history)\nRating - {}\nThemes - {}",
-            link, self.rating, self.themes.join(", ")
-        );
-
-        return comment;
-    }
-
-    fn build_pgn(&self, puzzle_num: usize) -> String {
-        let headers: String = format!(
-            "[Event \"Puzzle {}\"]\n\
-             [Result \"*\"]\n\
-             [Variant \"From Position\"]\n\
-             [ECO \"?\"]\n\
-             [Opening \"?\"]\n\
-             [FEN \"{}\"]\n\
-             [SetUp \"1\"]\n\
-             [ChapterMode \"gamebook\"]",
-            puzzle_num, self.fen
-        );
-
-        let fen_regions: Vec<&str> = self.fen.split_whitespace().collect(); 
-        let puzzle_color = fen_regions[1];
-
-        let pgn_moves = notation_utils::fen_to_pgn::fen_to_pgn(self.fen.clone(), self.solution.clone());
-        
-        let mut pgn_output: String;
-
-        // lazy alert!
-        if puzzle_color == "w" {
-            pgn_output = "{ White to move }\n".to_string();
-            for (i, mv) in pgn_moves.iter().enumerate() {
-                let move_number = i / 2 + 1;
-                let is_player_move = i % 2 == 0;
-    
-                if (i == self.solution.len() - 1) || self.solution.len() == 1 {
-                    pgn_output.push_str(&format!("{}.", move_number));
-                    pgn_output.push_str(&format!(" {}", mv));
-                    pgn_output.push_str(&format!(" {{ {} }} ", self.info_comment()));
-                } else if is_player_move {
-                    pgn_output.push_str(&format!("{}.", move_number));
-                    pgn_output.push_str(&format!(" {}", mv));
-                    pgn_output.push_str(" { Correct } ");
-                } else {
-                    pgn_output.push_str(&format!("{}...", move_number));
-                    pgn_output.push_str(&format!(" {}", mv));
-                    pgn_output.push_str(" { White to move } ");
-                }
-            }
-            return format!("{}\n\n{}", headers, pgn_output);
-        } else {
-            pgn_output = "{ Black to move }\n".to_string();
-            for (i, mv) in pgn_moves.iter().enumerate() {
-                let move_number = (i + 1) / 2 + 1;
-                let is_player_move = i % 2 == 1;
-    
-                if i == self.solution.len() - 1 {
-                    pgn_output.push_str(&format!("{}...", move_number));
-                    pgn_output.push_str(&format!(" {}", mv));
-                    pgn_output.push_str(&format!(" {{ {} }} *", self.info_comment()));
-                } else if is_player_move {
-                    pgn_output.push_str(&format!("{}.", move_number));
-                    pgn_output.push_str(&format!(" {}", mv));
-                    pgn_output.push_str(" { Black to move } ");
-                } else {
-                    pgn_output.push_str(&format!("{}...", move_number));
-                    pgn_output.push_str(&format!(" {}", mv));
-                    pgn_output.push_str(" { Correct } ");
-                }
-            }
-            return format!("{}\n\n{}", headers, pgn_output);
-        }
-    }
-}
-
-
-fn parse_puzzle(json_str: &str) -> serde_json::Result<PuzzleAttempt> {
-    let puzzle_attempt: PuzzleAttempt = serde_json::from_str(json_str)?;
-    Ok(puzzle_attempt)
-}
-
-
-fn parse_direct_puzzle(json_str: &str) -> serde_json::Result<DirectPuzzleData> {
-    let direct_puzzle_data: DirectPuzzleData = serde_json::from_str(json_str)?;
-    Ok(direct_puzzle_data)
-}
-
 
 async fn get_puzzle_from_id(id: &str) -> Result<Puzzle, Box<dyn Error>> {
     let client = reqwest::Client::new();
@@ -163,7 +43,7 @@ async fn get_puzzle_from_id(id: &str) -> Result<Puzzle, Box<dyn Error>> {
                     rating: direct_puzzle.puzzle.rating,
                     solution: direct_puzzle.puzzle.solution,
                     themes: direct_puzzle.puzzle.themes,
-                    fen: notation_utils::pgn_to_fen(&direct_puzzle.game.pgn)
+                    fen: notation_utils::pgn_to_fen::pgn_to_fen(&direct_puzzle.game.pgn)
                 };
                 println!("{}, {}", puzzle.fen, puzzle.id);
                 Ok(puzzle)
