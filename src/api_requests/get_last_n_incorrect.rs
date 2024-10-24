@@ -38,8 +38,9 @@ async fn get_puzzle_history_incorrect_page(max: i32, before_date: i64) -> Result
 
         for puzzle_attempt_string in puzzle_attempt_strings {
             match parse_puzzle(puzzle_attempt_string) {
-                Ok(puzzle_attempt) => {
+                Ok(mut puzzle_attempt) => {
                     if !puzzle_attempt.win {
+                        puzzle_attempt.puzzle.imported_directly = None;
                         incorrect_puzzles.push(puzzle_attempt.puzzle);
                         last_date = puzzle_attempt.date;
                     }

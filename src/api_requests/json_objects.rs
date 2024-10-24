@@ -11,6 +11,7 @@ pub struct Puzzle {
     pub solution: Vec<String>,
     pub themes: Vec<String>,
     pub fen: String,
+    pub imported_directly: Option<bool>
 }
 
 #[derive(Deserialize)]
@@ -42,9 +43,15 @@ pub struct DirectPuzzleGameData {
 impl Puzzle {
     pub fn info_comment(&self) -> String {
         let link: String = format!("https://lichess.org/training/{}", self.id);
+        let source: &str;
+        if self.imported_directly == Some(true) {
+            source = "(from ID/PGN)";
+        } else {
+            source = "(from puzzle history)"
+        };
         let comment: String = format!(
-            "{} (from puzzle history)\nRating - {}\nThemes - {}",
-            link, self.rating, self.themes.join(", ")
+            "{} {}\nRating - {}\nThemes - {}",
+            link, source.to_string(), self.rating, self.themes.join(", ")
         );
 
         return comment;

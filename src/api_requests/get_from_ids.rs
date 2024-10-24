@@ -24,7 +24,8 @@ async fn get_puzzle_from_id(id: &str) -> Result<Puzzle, Box<dyn Error>> {
                     rating: direct_puzzle.puzzle.rating,
                     solution: direct_puzzle.puzzle.solution,
                     themes: direct_puzzle.puzzle.themes,
-                    fen: notation_utils::pgn_to_fen::pgn_to_fen(&direct_puzzle.game.pgn)
+                    fen: notation_utils::pgn_to_fen::pgn_to_fen(&direct_puzzle.game.pgn),
+                    imported_directly: Some(true)
                 };
                 Ok(puzzle)
             }
