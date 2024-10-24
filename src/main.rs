@@ -1,6 +1,5 @@
 // main.rs
 
-// TODO: make directly imported puzzles correctly say they were imported from id, instead of from puzzle history
 // TODO: start working on the cli application
 
 // Possible TODO: also allow pasting chess.com puzzle exported pgns into cli as input for convenience
@@ -15,8 +14,8 @@ use api_requests::{get_from_ids::get_from_ids, get_last_n_incorrect::get_last_n_
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let mut puzzles = get_from_ids(vec!["VwGJ7", "f1kLA", "c5A8O"]).await?;
-    for puzzle in get_last_n_incorrect(30).await? {
+    let mut puzzles = get_from_ids(vec!["VwGJ7", "f1kLA", "c5A8O", "eqlJZ", "AIlWN"]).await?;
+    for puzzle in get_last_n_incorrect(5).await? {
         puzzles.push(puzzle);
     }
     post_overwrite("n38KtP3G", puzzles).await?;
