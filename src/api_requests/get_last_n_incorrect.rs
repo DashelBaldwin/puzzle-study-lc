@@ -6,14 +6,11 @@ use super::json_objects::Puzzle;
 use super::json_objects::parse_puzzle;
 
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
-use reqwest::Client;
 
-const PAT: &str = "lip_4706DGPceC0b3H9YRO5x";
+const PAT: &str = "imlazynotstupid";
 const PAGE_SIZE: i32 = 50;
 
-async fn get_puzzle_history_incorrect_page(max: i32, before_date: i64) -> Result<(Vec<Puzzle>, i64), Box<dyn Error>> {
-    let client = Client::new();
-
+async fn get_puzzle_history_incorrect_page(&client: reqwest::Client, max: i32, before_date: i64) -> Result<(Vec<Puzzle>, i64), Box<dyn Error>> {
     let mut headers = HeaderMap::new();
     headers.insert(AUTHORIZATION, HeaderValue::from_str(&format!("Bearer {}", PAT))?);
 
@@ -58,6 +55,8 @@ async fn get_puzzle_history_incorrect_page(max: i32, before_date: i64) -> Result
 }
 
 pub async fn get_last_n_incorrect(n: usize) -> Result<Vec<Puzzle>, Box<dyn Error>> {
+    let client = Client::new();
+
     let mut incorrect_puzzles: Vec<Puzzle> = Vec::new();
     let mut size: usize = 0;
     let mut before_date = -1;
@@ -65,7 +64,7 @@ pub async fn get_last_n_incorrect(n: usize) -> Result<Vec<Puzzle>, Box<dyn Error
 
     while size < n {
         println!("Getting page {}", page_number);
-        let page_data = get_puzzle_history_incorrect_page(PAGE_SIZE, before_date).await?;
+        let page_data = get_puzzle_history_incorrect_page(&client, PAGE_SIZE, before_date).await?;
         let page = page_data.0;
         before_date = page_data.1;
 

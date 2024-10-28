@@ -42,8 +42,6 @@ pub struct DirectPuzzleGameData {
 
 impl Puzzle {
     pub fn info_comment(&self) -> String {
-        // extract en passant flag from self.fen
-        // if not "-", also add "Last move: [move]"
         let ep_flag: Vec<&str> = self.fen
             .split(|c: char| c == '/' || c.is_whitespace())
             .collect()[10];
