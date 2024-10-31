@@ -9,6 +9,7 @@ use std::error::Error;
 
 mod api_requests;
 mod notation_utils;
+mod temp_tui;
 
 use api_requests::{get_from_ids::get_from_ids, get_last_n_incorrect::get_last_n_incorrect, post_overwrite::post_overwrite};
 

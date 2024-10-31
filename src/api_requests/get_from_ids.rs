@@ -46,7 +46,7 @@ pub async fn get_from_ids(ids: Vec<&str>) -> Result<Vec<Puzzle>, Box<dyn Error>>
     let mut puzzles: Vec<Puzzle> = Vec::new();
 
     for id in ids {
-        puzzles.push(get_puzzle_from_id(client, id).await?);
+        puzzles.push(get_puzzle_from_id(&client, id).await?);
     }
 
     Ok(puzzles)

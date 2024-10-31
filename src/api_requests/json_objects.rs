@@ -42,14 +42,16 @@ pub struct DirectPuzzleGameData {
 
 impl Puzzle {
     pub fn info_comment(&self) -> String {
-        let ep_flag: Vec<&str> = self.fen
+        let fen_regions: Vec<&str> = self.fen
             .split(|c: char| c == '/' || c.is_whitespace())
-            .collect()[10];
+            .collect();
 
+        let ep_flag = fen_regions[10];
+        
         let last_move = if ep_flag != "-" {
-            format!("Last move: {}\n", ep_flag);
+            format!("Last move: {}\n", ep_flag)
         } else {
-            "".to_string();
+            "".to_string()
         };
 
         let link: String = format!("https://lichess.org/training/{}", self.id);

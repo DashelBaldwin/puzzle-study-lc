@@ -10,7 +10,7 @@ use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 const PAT: &str = "imlazynotstupid";
 const PAGE_SIZE: i32 = 50;
 
-async fn get_puzzle_history_incorrect_page(&client: reqwest::Client, max: i32, before_date: i64) -> Result<(Vec<Puzzle>, i64), Box<dyn Error>> {
+async fn get_puzzle_history_incorrect_page(client: &reqwest::Client, max: i32, before_date: i64) -> Result<(Vec<Puzzle>, i64), Box<dyn Error>> {
     let mut headers = HeaderMap::new();
     headers.insert(AUTHORIZATION, HeaderValue::from_str(&format!("Bearer {}", PAT))?);
 
@@ -55,7 +55,7 @@ async fn get_puzzle_history_incorrect_page(&client: reqwest::Client, max: i32, b
 }
 
 pub async fn get_last_n_incorrect(n: usize) -> Result<Vec<Puzzle>, Box<dyn Error>> {
-    let client = Client::new();
+    let client = reqwest::Client::new();
 
     let mut incorrect_puzzles: Vec<Puzzle> = Vec::new();
     let mut size: usize = 0;

@@ -123,7 +123,7 @@ async fn clear_study(client: &reqwest::Client, study_id: &str, mut ids: Vec<Stri
 }
 
 pub async fn post_overwrite(study_id: &str, mut puzzles: Vec<Puzzle>) -> Result<(), Box<dyn Error>> {
-    let client: Client = reqwest::Client::new();
+    let client = reqwest::Client::new();
 
     println!("Getting study chapter IDs...");
     let chapter_ids = get_study_chapter_ids(&client, study_id).await?;
