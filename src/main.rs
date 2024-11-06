@@ -1,9 +1,7 @@
 // main.rs
 
-// TODO: start working on the cli application
-
+// TODO: make auto generation skip puzzles manually imported into the same set by user to prevent duplicates
 // Possible TODO: also allow pasting chess.com puzzle exported pgns into cli as input for convenience
-// Possible TODO: make auto generation skip puzzles manually imported into the same set by user to prevent duplicates
 
 use std::error::Error;
 
@@ -21,7 +19,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // }
     // post_overwrite("n38KtP3G", puzzles).await?;
 
-    temp_tui::get_user_pat();
+    let mut app = temp_tui::App::new();
 
     Ok(())
 }
