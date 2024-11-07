@@ -33,7 +33,7 @@ impl App {
         } else {
             println!("Study ID: {}", self.study_id);
         }
-        println!("{} puzzles staged", self.puzzles.len());
+        println!("{}/64 puzzles staged", self.puzzles.len());
     }
 
     fn prompt(&self) -> String {
@@ -133,6 +133,16 @@ impl App {
             }
         }
     }
+
+    async fn autofill(&mut self) -> Result<(), Box<dyn Error>> {
+        let puzzles: Vec<Puzzle> = get_last_n_incorrect(self.pat.clone(), 64 - self.puzzles.len()).await?;
+        match puzzles.len() {
+            1 => println!("\nStaged 1 puzzle"),
+            _ => println!("\nStaged {} puzzles", puzzles.len())
+        }
+        self.puzzles.extend(puzzles);
+        Ok(())
+    }
     
     pub async fn run(&mut self) -> Result<(), Box<dyn Error>> {
         self.get_initial_user_pat();
@@ -147,7 +157,7 @@ impl App {
                 "h" | "H" => self.options_message(),
                 "p" | "P" => self.get_user_pat(),
                 "s" | "S" => self.get_study_id(),
-                // "f" | "F" => ,
+                "f" | "F" => self.autofill().await?,
                 // "u" | "U" => ,
                 _ => { 
                     let re = Regex::new(r"(?i)\b[a-z0-9]{5}\b(?:[, ]\s*)?").unwrap();
