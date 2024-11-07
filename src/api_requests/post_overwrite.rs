@@ -1,11 +1,14 @@
 // post_overwrite.rs
 
+use std::io::{self, Write};
 use std::error::Error;
 
 use super::json_objects::Puzzle;
 
 use serde::Serialize;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
+
+use crate::utils::progress_bar::{inner_progress_bar, PROGRESS_BAR_WIDTH};
 
 #[derive(Serialize)]
 struct ImportPgnRequest {
@@ -50,11 +53,9 @@ async fn post_puzzles_to_study(client: &reqwest::Client, pat: String, study_id: 
         .send()
         .await?;
 
-    if response.status().is_success() {
-        println!("Successfully imported PGN!");
-    } else {
+    if !response.status().is_success() {
         println!("Failed to import PGN: {:?}", response.text().await?);
-    }
+    } 
 
     Ok(())
 }
@@ -112,10 +113,20 @@ async fn clear_chapter(client: &reqwest::Client, pat: String, study_id: &str, id
 async fn clear_study(client: &reqwest::Client, pat: String, study_id: &str, mut ids: Vec<String>, include_first_chapter: bool) -> Result<(), Box<dyn Error>> {
     let chapters_left = if include_first_chapter {0} else {1};
 
+    let initial_size = ids.len();
+
+    print!("Clearing study [{}] ", inner_progress_bar(0.0, PROGRESS_BAR_WIDTH)); 
+    io::stdout().flush().unwrap();
+
     while ids.len() > chapters_left {
-        let id = ids.pop().expect("Expected String in ids");
+        let progress = 1.0 - ids.len() as f32 / initial_size as f32;
+        let id = ids.pop().unwrap();
         clear_chapter(client, pat.clone(), study_id, id).await?;
+        print!("\x1b[0GClearing study [{}] ", inner_progress_bar(progress, PROGRESS_BAR_WIDTH)); 
+        io::stdout().flush().unwrap();
     }
+    println!("\x1b[0GClearing study [{}] done! ", inner_progress_bar(1.0, PROGRESS_BAR_WIDTH)); 
+    io::stdout().flush().unwrap();
 
     Ok(())
 }
@@ -123,17 +134,15 @@ async fn clear_study(client: &reqwest::Client, pat: String, study_id: &str, mut 
 pub async fn post_overwrite(pat: String, study_id: &str, mut puzzles: Vec<Puzzle>) -> Result<(), Box<dyn Error>> {
     let client = reqwest::Client::new();
 
-    println!("Getting study chapter IDs...");
+    println!("Getting study chapter IDs");
     let chapter_ids = get_study_chapter_ids(&client, pat.clone(), study_id).await?;
     let minimum_chapter_id = (&chapter_ids[0]).to_string();
     let first_puzzle = puzzles.remove(0);
 
-    println!("Attempting to clear study...");
     clear_study(&client, pat.clone(), study_id, chapter_ids, false).await?;
-    println!("Swapping first chapter...");
     post_puzzles_to_study(&client, pat.clone(), study_id, vec![first_puzzle], false).await?;
     clear_chapter(&client, pat.clone(), study_id, minimum_chapter_id).await?;
-    println!("Uploading all chapters...");
+    println!("Uploading staged puzzles");
     post_puzzles_to_study(&client, pat.clone(), study_id, puzzles, true).await?;
 
     Ok(())

@@ -6,7 +6,6 @@ use std::io::{self, Write};
 use regex::Regex;
 
 use crate::api_requests;
-use crate::notation_utils;
 
 use crate::api_requests::json_objects::Puzzle;
 use api_requests::{get_from_ids::get_from_ids, get_last_n_incorrect::get_last_n_incorrect, post_overwrite::post_overwrite};
@@ -38,7 +37,7 @@ impl App {
 
     fn prompt(&self) -> String {
         print!("> ");
-        io::stdout().flush().expect("Failed to flush stdout");
+        io::stdout().flush().unwrap();
     
         let mut input = String::new();
     
@@ -135,12 +134,21 @@ impl App {
     }
 
     async fn autofill(&mut self) -> Result<(), Box<dyn Error>> {
-        let puzzles: Vec<Puzzle> = get_last_n_incorrect(self.pat.clone(), 64 - self.puzzles.len()).await?;
+        let n = 64 - self.puzzles.len();
+        println!("Autofilling {} puzzles", n);
+        let puzzles: Vec<Puzzle> = get_last_n_incorrect(self.pat.clone(), n).await?;
         match puzzles.len() {
             1 => println!("\nStaged 1 puzzle"),
             _ => println!("\nStaged {} puzzles", puzzles.len())
         }
         self.puzzles.extend(puzzles);
+        Ok(())
+    }
+
+    async fn upload(&self) -> Result<(), Box<dyn Error>> {
+        println!("Clearing study {} and uploading {} staged puzzles.", self.study_id, self.puzzles.len());
+        println!("This may take a while...\n");
+        post_overwrite(self.pat.clone(), &self.study_id, self.puzzles.clone()).await?;
         Ok(())
     }
     
@@ -158,7 +166,7 @@ impl App {
                 "p" | "P" => self.get_user_pat(),
                 "s" | "S" => self.get_study_id(),
                 "f" | "F" => self.autofill().await?,
-                // "u" | "U" => ,
+                "u" | "U" => self.upload().await?,
                 _ => { 
                     let re = Regex::new(r"(?i)\b[a-z0-9]{5}\b(?:[, ]\s*)?").unwrap();
                     if re.is_match(&input) {
