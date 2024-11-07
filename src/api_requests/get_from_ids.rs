@@ -7,7 +7,7 @@ use super::json_objects::parse_direct_puzzle;
 
 use crate::notation_utils;
 
-async fn get_puzzle_from_id(client: &reqwest::Client, id: &str) -> Result<Puzzle, Box<dyn Error>> {
+async fn get_puzzle_from_id(client: &reqwest::Client, id: String) -> Result<Puzzle, Box<dyn Error>> {
     let response = client
         .get(format!("https://lichess.org/api/puzzle/{}", id))
         .send()
@@ -18,7 +18,7 @@ async fn get_puzzle_from_id(client: &reqwest::Client, id: &str) -> Result<Puzzle
         match parse_direct_puzzle(&body) {
             Ok(direct_puzzle) => {
                 let puzzle = Puzzle {
-                    id: id.to_string(),
+                    id: id,
                     rating: direct_puzzle.puzzle.rating,
                     solution: direct_puzzle.puzzle.solution,
                     themes: direct_puzzle.puzzle.themes,
@@ -40,7 +40,7 @@ async fn get_puzzle_from_id(client: &reqwest::Client, id: &str) -> Result<Puzzle
 }
 
 
-pub async fn get_from_ids(ids: Vec<&str>) -> Result<Vec<Puzzle>, Box<dyn Error>> {
+pub async fn get_from_ids(ids: Vec<String>) -> Result<Vec<Puzzle>, Box<dyn Error>> {
     let client = reqwest::Client::new();
 
     let mut puzzles: Vec<Puzzle> = Vec::new();

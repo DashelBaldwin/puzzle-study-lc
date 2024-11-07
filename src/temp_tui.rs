@@ -27,7 +27,7 @@ impl App {
     }
 
     fn state_message(&self) {
-        println!("PAT: {}", self.pat);
+        println!("\nPAT: {}", self.pat);
         if self.study_id.is_empty() {
             println!("Target study not set");
         } else {
@@ -71,12 +71,12 @@ impl App {
     }
 
     fn options_message(&self) {
-        println!("q - quit");
+        println!("\nq - quit");
         println!("h - show this menu");
         println!("p - change PAT");
         println!("s - set/change study ID");
         println!("f - *autofill puzzle set with your account's recent incorrect puzzles");
-        println!("[puzzle ID] - *add a puzzle by its ID");
+        println!("[puzzle ID]... - *add one or more puzzles by their IDs (whitespace or comma delimited)");
         println!("u - *upload all staged puzzles to the current study ID");
         println!("*uses api requests, will involve some delay");
     }
@@ -86,7 +86,7 @@ impl App {
         loop {
             let input = self.prompt();
     
-            let re = Regex::new(r"^lip_[a-zA-Z0-9]{20}$").expect("Failed to init regex");
+            let re = Regex::new(r"^lip_[a-zA-Z0-9]{20}$").unwrap();
     
             if re.is_match(&input) {
                 println!("Using PAT {}. Note that this won't be validated until an authenticated request is sent.", input);
@@ -102,9 +102,10 @@ impl App {
 
     fn get_user_pat(&mut self) {
         loop {
+            println!("Paste your PAT below.");
             let input = self.prompt();
     
-            let re = Regex::new(r"^lip_[a-zA-Z0-9]{20}$").expect("Failed to init regex");
+            let re = Regex::new(r"^lip_[a-zA-Z0-9]{20}$").unwrap();
     
             if re.is_match(&input) {
                 println!("Using PAT {}.", input);
@@ -118,9 +119,10 @@ impl App {
 
     fn get_study_id(&mut self) {
         loop {
+            println!("Paste the study ID below.");
             let input = self.prompt();
     
-            let re = Regex::new(r"^[a-zA-Z0-9]{8}$").expect("Failed to init regex");
+            let re = Regex::new(r"^[a-zA-Z0-9]{8}$").unwrap();
     
             if re.is_match(&input) {
                 println!("Using target study ID to {}.", input);
@@ -132,17 +134,39 @@ impl App {
         }
     }
     
-    fn get_user_action(&self) -> String {
-        self.state_message();
-        println!("\nPlease enter an action (enter 'h' for a list of valid commands)");
+    pub async fn run(&mut self) -> Result<(), Box<dyn Error>> {
+        self.get_initial_user_pat();
 
         loop {
+            self.state_message();
+            println!("\nPlease enter an action (enter 'h' for a list of valid commands)");
             let input: String = self.prompt();
 
             match input.as_str() {
-                "q" | "h" | "p" | "s" | "f" | "u" |
-                "Q" | "H" | "P" | "S" | "F" | "U" => return input,
-                _ => { println!("Failed to parse input (enter 'h' for a list of valid commands)\n"); }
+                "q" | "Q" => break Ok(()),
+                "h" | "H" => self.options_message(),
+                "p" | "P" => self.get_user_pat(),
+                "s" | "S" => self.get_study_id(),
+                // "f" | "F" => ,
+                // "u" | "U" => ,
+                _ => { 
+                    let re = Regex::new(r"(?i)\b[a-z0-9]{5}\b(?:[, ]\s*)?").unwrap();
+                    if re.is_match(&input) {
+                        let re = Regex::new(r"(?i)\b[a-z0-9]{5}\b").unwrap();
+                        let puzzle_ids: Vec<String> = re.find_iter(&input)
+                            .map(|mat| mat.as_str().to_string())
+                            .collect();
+
+                        let puzzles: Vec<Puzzle> = get_from_ids(puzzle_ids).await?;
+                        match puzzles.len() {
+                            1 => println!("\nStaged 1 puzzle"),
+                            _ => println!("\nStaged {} puzzles", puzzles.len())
+                        }
+                        self.puzzles.extend(puzzles);
+                    } else {
+                        println!("Failed to parse input (enter 'h' for a list of valid commands)\n"); 
+                    }
+                }
             }
         }
     }

@@ -7,12 +7,11 @@ use super::json_objects::parse_puzzle;
 
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 
-const PAT: &str = "imlazynotstupid";
 const PAGE_SIZE: i32 = 50;
 
-async fn get_puzzle_history_incorrect_page(client: &reqwest::Client, max: i32, before_date: i64) -> Result<(Vec<Puzzle>, i64), Box<dyn Error>> {
+async fn get_puzzle_history_incorrect_page(client: &reqwest::Client, pat: String, max: i32, before_date: i64) -> Result<(Vec<Puzzle>, i64), Box<dyn Error>> {
     let mut headers = HeaderMap::new();
-    headers.insert(AUTHORIZATION, HeaderValue::from_str(&format!("Bearer {}", PAT))?);
+    headers.insert(AUTHORIZATION, HeaderValue::from_str(&format!("Bearer {}", pat))?);
 
     let mut query = vec![("max", i64::from(max))];
 
@@ -54,7 +53,7 @@ async fn get_puzzle_history_incorrect_page(client: &reqwest::Client, max: i32, b
     }
 }
 
-pub async fn get_last_n_incorrect(n: usize) -> Result<Vec<Puzzle>, Box<dyn Error>> {
+pub async fn get_last_n_incorrect(pat: String, n: usize) -> Result<Vec<Puzzle>, Box<dyn Error>> {
     let client = reqwest::Client::new();
 
     let mut incorrect_puzzles: Vec<Puzzle> = Vec::new();
@@ -64,7 +63,7 @@ pub async fn get_last_n_incorrect(n: usize) -> Result<Vec<Puzzle>, Box<dyn Error
 
     while size < n {
         println!("Getting page {}", page_number);
-        let page_data = get_puzzle_history_incorrect_page(&client, PAGE_SIZE, before_date).await?;
+        let page_data = get_puzzle_history_incorrect_page(&client, pat.clone(), PAGE_SIZE, before_date).await?;
         let page = page_data.0;
         before_date = page_data.1;
 

@@ -7,8 +7,6 @@ use super::json_objects::Puzzle;
 use serde::Serialize;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 
-const PAT: &str = "imlazynotstupid";
-
 #[derive(Serialize)]
 struct ImportPgnRequest {
     name: String,
@@ -29,9 +27,9 @@ fn concatenate_pgn(puzzles: Vec<Puzzle>, offset_index: bool) -> String {
     pgn_strings.join("\n\n")
 }
 
-async fn post_puzzles_to_study(client: &reqwest::Client, study_id: &str, puzzles: Vec<Puzzle>, offset_index: bool) -> Result<(), Box<dyn Error>> {
+async fn post_puzzles_to_study(client: &reqwest::Client, pat: String, study_id: &str, puzzles: Vec<Puzzle>, offset_index: bool) -> Result<(), Box<dyn Error>> {
     let mut headers = HeaderMap::new();
-    headers.insert(AUTHORIZATION, HeaderValue::from_str(&format!("Bearer {}", PAT))?);
+    headers.insert(AUTHORIZATION, HeaderValue::from_str(&format!("Bearer {}", pat))?);
 
     let pgn_strings = concatenate_pgn(puzzles, offset_index);
 
@@ -61,9 +59,9 @@ async fn post_puzzles_to_study(client: &reqwest::Client, study_id: &str, puzzles
     Ok(())
 }
 
-async fn get_study_chapter_ids(client: &reqwest::Client, study_id: &str) -> Result<Vec<String>, Box<dyn Error>> {
+async fn get_study_chapter_ids(client: &reqwest::Client, pat: String, study_id: &str) -> Result<Vec<String>, Box<dyn Error>> {
     let mut headers = HeaderMap::new();
-    headers.insert(AUTHORIZATION, HeaderValue::from_str(&format!("Bearer {}", PAT))?);
+    headers.insert(AUTHORIZATION, HeaderValue::from_str(&format!("Bearer {}", pat))?);
 
     let response = client
         .get(format!("https://lichess.org/api/study/{}.pgn", study_id))
@@ -93,9 +91,9 @@ async fn get_study_chapter_ids(client: &reqwest::Client, study_id: &str) -> Resu
     Ok(ids)
 }
 
-async fn clear_chapter(client: &reqwest::Client, study_id: &str, id: String) -> Result<(), Box<dyn Error>> {
+async fn clear_chapter(client: &reqwest::Client, pat: String, study_id: &str, id: String) -> Result<(), Box<dyn Error>> {
     let mut headers = HeaderMap::new();
-    headers.insert(AUTHORIZATION, HeaderValue::from_str(&format!("Bearer {}", PAT))?);
+    headers.insert(AUTHORIZATION, HeaderValue::from_str(&format!("Bearer {}", pat))?);
 
     let response = client
         .delete(format!("https://lichess.org/api/study/{}/{}", study_id, id))
@@ -111,32 +109,32 @@ async fn clear_chapter(client: &reqwest::Client, study_id: &str, id: String) -> 
     Ok(())
 }
 
-async fn clear_study(client: &reqwest::Client, study_id: &str, mut ids: Vec<String>, include_first_chapter: bool) -> Result<(), Box<dyn Error>> {
+async fn clear_study(client: &reqwest::Client, pat: String, study_id: &str, mut ids: Vec<String>, include_first_chapter: bool) -> Result<(), Box<dyn Error>> {
     let chapters_left = if include_first_chapter {0} else {1};
 
     while ids.len() > chapters_left {
         let id = ids.pop().expect("Expected String in ids");
-        clear_chapter(client, study_id, id).await?;
+        clear_chapter(client, pat.clone(), study_id, id).await?;
     }
 
     Ok(())
 }
 
-pub async fn post_overwrite(study_id: &str, mut puzzles: Vec<Puzzle>) -> Result<(), Box<dyn Error>> {
+pub async fn post_overwrite(pat: String, study_id: &str, mut puzzles: Vec<Puzzle>) -> Result<(), Box<dyn Error>> {
     let client = reqwest::Client::new();
 
     println!("Getting study chapter IDs...");
-    let chapter_ids = get_study_chapter_ids(&client, study_id).await?;
+    let chapter_ids = get_study_chapter_ids(&client, pat.clone(), study_id).await?;
     let minimum_chapter_id = (&chapter_ids[0]).to_string();
     let first_puzzle = puzzles.remove(0);
 
     println!("Attempting to clear study...");
-    clear_study(&client, study_id, chapter_ids, false).await?;
+    clear_study(&client, pat.clone(), study_id, chapter_ids, false).await?;
     println!("Swapping first chapter...");
-    post_puzzles_to_study(&client, study_id, vec![first_puzzle], false).await?;
-    clear_chapter(&client, study_id, minimum_chapter_id).await?;
+    post_puzzles_to_study(&client, pat.clone(), study_id, vec![first_puzzle], false).await?;
+    clear_chapter(&client, pat.clone(), study_id, minimum_chapter_id).await?;
     println!("Uploading all chapters...");
-    post_puzzles_to_study(&client, study_id, puzzles, true).await?;
+    post_puzzles_to_study(&client, pat.clone(), study_id, puzzles, true).await?;
 
     Ok(())
 }

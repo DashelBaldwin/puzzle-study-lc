@@ -20,6 +20,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // post_overwrite("n38KtP3G", puzzles).await?;
 
     let mut app = temp_tui::App::new();
+    app.run().await?;
 
     Ok(())
 }
