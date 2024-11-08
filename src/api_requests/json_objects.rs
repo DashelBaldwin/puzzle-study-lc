@@ -73,7 +73,6 @@ impl Puzzle {
         let puzzle_color = fen_regions[1];
 
         let pgn_moves = notation_utils::fen_to_pgn::fen_to_pgn(self.fen.clone(), self.solution.clone());
-        
         let mut pgn_output: String;
 
         let fen_regions: Vec<&str> = self.fen
