@@ -1,4 +1,4 @@
-// get_puzzles_from_ids.rs
+// get_from_ids.rs
 
 use std::error::Error;
 
