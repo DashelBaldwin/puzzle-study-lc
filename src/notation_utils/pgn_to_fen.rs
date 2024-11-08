@@ -220,7 +220,7 @@ impl Board {
                 match to.0 {
                     2 => self.contents[to.0 - 1][to.1] = None,
                     5 => self.contents[to.0 + 1][to.1] = None,
-                    _ => println!("ERROR ep target not in valid ep location")
+                    _ => eprintln!("ep target not in valid ep location")
                 }
                 ()
             }
@@ -242,7 +242,7 @@ impl Board {
             match to.1 {
                 2 => self.normal_movement((from.0, 0), (from.0, 3)),
                 6 => self.normal_movement((from.0, 7), (from.0, 5)),
-                _ => println!("ERROR castling king landed at incorrect location")
+                _ => eprintln!("castling king landed at incorrect location")
             }
         } 
         self.normal_movement(from, to);
@@ -311,10 +311,10 @@ impl Board {
                 }
             }
             PieceName::Pawn => {
-                println!("Pawn searched for origin square as if it were another piece")
+                eprintln!("find_origin_of_move: pawn searched for origin square as if it were another piece")
             }
         }
-        println!("find_origin_of_move: ERROR No piece was located...");
+        eprintln!("find_origin_of_move: no piece was located");
         None
     }
 
@@ -475,4 +475,119 @@ pub fn pgn_to_fen(pgn_string: &str) -> String {
         };
     }
     board.to_fen(turn)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_pgn_to_fen() {
+        // https://lichess.org/training/zOm2u
+        assert_eq!(
+            pgn_to_fen(
+                "c4 Nf6 g3 g6 Bg2 Bg7 Nc3 O-O Nf3 d6 d4 Nc6 O-O e5 d5 Ne7 e4 Nh5 \
+                 Be3 f5 Qc2 f4 Bd2 h6 a4 g5 Ne1 Ng6 Nd3 f3 Bh1 Bh3 Rfd1 Qd7 Ne1 Qg4 \
+                 Qd3 Nh4 Rdc1 Bg2 Bxg2"
+            ),
+            "r4rk1/ppp3b1/3p3p/3Pp1pn/P1P1P1qn/2NQ1pP1/1P1B1PBP/R1R1N1K1 b KQkq - 0 1"
+        );
+    
+        // https://lichess.org/training/jlm4M
+        assert_eq!(
+            pgn_to_fen(
+                "Nf3 Nc6 d4 d6 Bf4 Nf6 e3 Bg4 Nbd2 Nh5 Bg5 f6 Bh4 g5 Bg3 Nxg3 hxg3 \
+                 Qd7 Qe2 O-O-O Qb5 a6 Qb3 Be6 Qa4 Na7 Qxd7+ Bxd7 O-O-O Bb5 Bxb5 \
+                 Nxb5 a3 e5 dxe5 dxe5 Nc4 Rxd1+ Rxd1 Bd6 Nxd6+ Nxd6 Nd2 f5 Nb3 h5 \
+                 Rd5 Re8 f4 gxf4 gxf4 exf4 exf4 Rf8 Re5 Ne4 Nd4 Ng3 Ne6 Re8 Ng7 \
+                 Rxe5 fxe5 h4 e6"
+            ),
+            "2k5/1pp3N1/p3P3/5p2/7p/P5n1/1PP3P1/2K5 b KQkq - 0 1"
+        );
+        
+        // https://lichess.org/training/qe9En
+        assert_eq!(
+            pgn_to_fen(
+                "d4 e6 c4 Nf6 Nc3 Bb4 Nf3 b6 Bd2 Bb7 e3 c5 Be2 Bxc3 bxc3 cxd4 cxd4 \
+                 d5 Ne5 dxc4 O-O Nc6 Nxc6 Bxc6 Bxc4 Bd5 Qa4+ Qd7 Qxd7+ Kxd7 Bxd5 \
+                 Nxd5 Rfc1 Rhc8 h3 Rxc1+ Rxc1 Rc8 Rxc8 Kxc8 Kf1 Kb7 Ke2 Ka6 Kd3 \
+                 Kb5 Kc2 Nb4+ Bxb4 Kxb4 Kb2 Kc4 Kc2 a5 a3 b5 g4 b4 axb4 axb4 h4 \
+                 b3+ Kb2 Kd3 Kxb3 Ke2 Kc4 Kxf2 e4 Kf3 Kd3"
+            ),
+            "8/5ppp/4p3/8/3PP1PP/3K1k2/8/8 b KQkq - 0 1"
+        );
+        
+        // https://lichess.org/training/euwQI
+        assert_eq!(
+            pgn_to_fen(
+                "e4 e5 Nf3 d6 d4 Bg4 dxe5 Bxf3 Qxf3 dxe5 Bc4 Qe7 Qb3 Qb4+ Nc3 Qxb3 \
+                 Bxb3 Nd7 Nd5 O-O-O Be3 Kb8 O-O-O g6 Nc3 h6 Bxf7 Ne7 Rd2 Nc6 Rhd1 \
+                 Bd6 Bxg6 Rhg8 Bf5 Rxg2 Bxh6 Nd4 Bxd7 Rxd7 Be3 Nf3 Rd5 a6 Bc5 Kc8 \
+                 Bxd6 cxd6 Rxd6 Rxd6 Rxd6 Rxh2 Nd1 Kc7 Rf6 Rh3 c3 a5 Kc2 b5 Kb3 \
+                 Nd2+ Ka3 Nxe4 Ra6 b4+ Ka4 bxc3 Nxc3 Nc5+ Kb5 Nxa6 Kxa6 Rf3 Kxa5 \
+                 Rxf2 b4 Rc2 Nb5+ Kb8 a4 e4 Nd4 Rc4 Nf5 Rc7 b5 Ra7+ Kb4 Kc7 a5 \
+                 Ra8 b6+ Kb7 Kb5 Rd8 a6+ Kb8 Kc6 Rf8 Nd6 e3"
+            ),
+            "1k3r2/8/PPKN4/8/8/4p3/8/8 w KQkq - 0 1"
+        );
+        
+        // https://lichess.org/training/vEK4Z
+        assert_eq!(
+            pgn_to_fen(
+                "e4 e5 d4 exd4 Nf3 Nc6 Bc4 h6 Nxd4 Bc5 Nxc6 Qf6 O-O dxc6 e5 Qh4 \
+                 Qf3 Be6 Bxe6 fxe6 Nc3 O-O-O Ne4 Bb6 a4 a6 c3 Ne7 a5 Rhf8 Qe2 \
+                 Rf5 axb6 cxb6 Nd6+ Kc7 Nxf5 Nxf5 Be3 c5 b4 Qe4 Rfe1 Nh4 f3 Qg6 \
+                 bxc5 Rf8 cxb6+ Kb8 Qf2 Nxf3+ Kh1 Qh5 gxf3 Rxf3 Qe2 Qh3 Rg1 g5 \
+                 Bd4 Kc8 Qg2 Qf5 Raf1 g4 Rxf3 gxf3 Qg3 Qe4 Qg8+ Kd7 Rg7+ Kc6 \
+                 Qe8+ Kd5 Rd7+ Kc4 Qc8+ Kb3 Kg1 Qg4+ Kf2 Qg2+ Ke3 f2 Qxb7"
+            ),
+            "8/1Q1R4/pP2p2p/4P3/3B4/1kP1K3/5pqP/8 b KQkq - 0 1"
+        );
+        
+        // https://lichess.org/training/N9l1q
+        assert_eq!(
+            pgn_to_fen(
+                "Nf3 d5 d4 Nf6 Bg5 Nc6 e3 Bg4 Bb5 a6 Ba4 b5 Bb3 e6 O-O Be7 h3 Bh5 \
+                 a4 h6 Bh4 Ne4 Bxe7 Nxe7 axb5 axb5 Rxa8 Qxa8 Nbd2 O-O Qe2 Nxd2 \
+                 Qxd2 Bxf3 gxf3 Ng6 Kh1 c6 Rg1 Qc8 Rg3 e5 dxe5 Nxe5 e4 dxe4 \
+                 Qxh6 g6 f4 Nc4 c3 Qf5 h4 Ra8 h5 Ra1+ Kg2"
+            ),
+            "6k1/5p2/2p3pQ/1p3q1P/2n1pP2/1BP3R1/1P3PK1/r7 b KQkq - 0 1"
+        );
+        
+        // https://lichess.org/training/R0zaE
+        assert_eq!(
+            pgn_to_fen("g4 d5 Bg2 Bxg4 c4 c6 Qb3 Nf6 Qxb7 e6 Qxa8 Bc5 Qb7 Ne4 f3"),
+            "1n1qk2r/pQ3ppp/2p1p3/2bp4/2P1n1b1/5P2/PP1PP1BP/RNB1K1NR b KQkq - 0 1"
+        );
+        
+        // https://lichess.org/training/xbnI7
+        assert_eq!(
+            pgn_to_fen(
+                "e4 e5 Nf3 Nf6 d3 Nc6 Nc3 Bc5 Be2 d6 O-O Ng4 a3 a6 h3 h5 hxg4 hxg4 \
+                 Ng5 f6 Bxg4 fxg5 Bxc8 Qxc8 Bxg5 Qe6 Nd5 Bb6 Nxb6 cxb6 f4 Nd4 \
+                 fxe5 Qxe5 Qg4"
+            ),
+            "r3k2r/1p4p1/pp1p4/4q1B1/3nP1Q1/P2P4/1PP3P1/R4RK1 b KQkq - 0 1"
+        );
+        
+        // https://lichess.org/training/xw2Nb
+        assert_eq!(
+            pgn_to_fen(
+                "e4 b6 Nc3 Bb7 d4 e6 f4 Bb4 Bd3 Nf6 e5 Ne4 Bxe4 Bxe4 Nf3 Nc6 O-O \
+                 Bxf3 Qxf3 Nxd4 Qd3 Nf5 g4 Bc5+ Kg2 Nh4+ Kg3 f5"
+            ),
+            "r2qk2r/p1pp2pp/1p2p3/2b1Pp2/5PPn/2NQ2K1/PPP4P/R1B2R2 w KQkq f6 0 1"
+        );
+        
+        // https://lichess.org/training/2csxh
+        assert_eq!(
+            pgn_to_fen(
+                "e4 d5 exd5 Qxd5 d4 Nf6 Nf3 Bg4 Nbd2 Nbd7 c4 Qh5 Be2 O-O-O O-O e5 \
+                 h3 Bxh3 gxh3 Qxh3 Ng5 Qh4 Ndf3 Qg4+ Kh1 e4 Nh2 Qh4 Nxf7 Be7 \
+                 Bg5 Qh3 Nxh8"
+            ),
+            "2kr3N/pppnb1pp/5n2/6B1/2PPp3/7q/PP2BP1N/R2Q1R1K b KQkq - 0 1"
+        );
+    }
 }

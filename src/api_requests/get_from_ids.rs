@@ -25,6 +25,7 @@ async fn get_puzzle_from_id(client: &reqwest::Client, id: String) -> Result<Puzz
                     fen: notation_utils::pgn_to_fen::pgn_to_fen(&direct_puzzle.game.pgn),
                     imported_directly: Some(true)
                 };
+                println!("{}", puzzle.fen);
                 Ok(puzzle)
             }
             Err(e) => {
