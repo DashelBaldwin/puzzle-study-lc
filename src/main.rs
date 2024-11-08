@@ -3,8 +3,6 @@
 // TODO: make auto generation skip puzzles manually imported into the same set by user to prevent duplicates
 // Possible TODO: also allow pasting chess.com puzzle exported pgns into cli as input for convenience
 
-use std::error::Error;
-
 mod api_requests;
 mod notation_utils;
 mod utils;

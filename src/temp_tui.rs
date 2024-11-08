@@ -209,18 +209,20 @@ impl App {
                                 }
                             }
 
-                            match puzzles.len() {
-                                1 => println!("\nStaged 1 puzzle"),
-                                _ => println!("\nStaged {} puzzles", puzzles.len())
-                            }
-
                             let new_size =  self.puzzles.len() + puzzles.len();
+                            let truncated_set: Vec<Puzzle>;
                             if new_size > 64 {
                                 let plural_char = if new_size - 64 == 1 { "" } else { "s" };
                                 println!("Truncated {} puzzle{} that would exceed stage capacity", new_size-64, plural_char);
-                                self.puzzles.extend(puzzles[0..64 - self.puzzles.len()].iter().cloned());
+                                truncated_set = puzzles[0..64 - self.puzzles.len()].iter().cloned().collect();
+                                
                             } else {
-                                self.puzzles.extend(puzzles);
+                                truncated_set = puzzles.clone();
+                            }
+                            self.puzzles.extend(truncated_set);
+                            match puzzles.len() {
+                                1 => println!("\nStaged 1 puzzle"),
+                                _ => println!("\nStaged {} puzzles", puzzles.len())
                             }
                         }
                     } else {
