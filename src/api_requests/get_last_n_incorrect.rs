@@ -54,7 +54,7 @@ async fn get_puzzle_history_incorrect_page(client: &reqwest::Client, pat: String
         Ok((incorrect_puzzles, last_date, duplicates))
 
     } else {
-        Err(Box::from(format!("Couldn't access the puzzle history of the user associated with '{}'; was this token entered correctly?", pat)))
+        Err(Box::from(format!("\nCouldn't access the puzzle history of the user associated with '{}'; was this token entered correctly?", pat)))
     }
 }
 
