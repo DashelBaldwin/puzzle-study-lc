@@ -28,13 +28,12 @@ async fn get_puzzle_from_id(client: &reqwest::Client, id: String) -> Result<Puzz
                 Ok(puzzle)
             }
             Err(e) => {
-                eprintln!("Failed to parse puzzle: {}", e);
                 Err(Box::from(e))
             }
         }
 
     } else {
-        Err(Box::from(format!("API request error: {}", response.status())))
+        Err(Box::from(format!("Couldn't find https://lichess.org/training/{}; was this ID entered correctly?", id)))
     }
 
 }

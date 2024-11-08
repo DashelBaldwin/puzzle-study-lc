@@ -42,14 +42,14 @@ async fn get_puzzle_history_incorrect_page(client: &reqwest::Client, pat: String
                     }
                 }
                 Err(e) => {
-                    eprintln!("Failed to parse puzzle: {}", e);
+                    return Err(Box::from(e));
                 }
             }
         }
         Ok((incorrect_puzzles, last_date))
 
     } else {
-        Err(Box::from(format!("API request error: {}", response.status())))
+        Err(Box::from(format!("Couldn't access the puzzle history of the user associated with '{}'; was this token entered correctly?", pat)))
     }
 }
 

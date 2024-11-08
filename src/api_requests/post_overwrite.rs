@@ -54,7 +54,7 @@ async fn post_puzzles_to_study(client: &reqwest::Client, pat: String, study_id: 
         .await?;
 
     if !response.status().is_success() {
-        println!("Failed to import PGN: {:?}", response.text().await?);
+        eprintln!("Failed to import PGN: {:?}", response.text().await?);
     } 
 
     Ok(())
@@ -86,7 +86,7 @@ async fn get_study_chapter_ids(client: &reqwest::Client, pat: String, study_id: 
             }
         }
     } else {
-        println!("Error: failed to get study chapters");
+        return Err(Box::from(format!("Couldn't access study '{}' on behalf of the user associated with '{}'; were these tokens entered correctly?", study_id, pat)))
     }
 
     Ok(ids)
@@ -103,22 +103,19 @@ async fn clear_chapter(client: &reqwest::Client, pat: String, study_id: &str, id
         .await?;
     
         if !response.status().is_success() {
-            eprintln!("Failed to delete chapter ID={} with status: {}", id, response.status());
-            return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, format!("Failed to delete chapter ID={} with status: {}", id, response.status()))));
+            return Err(Box::from(format!("Couldn't modify study '{}' on behalf of the user associated with '{}'; were these tokens entered correctly?", study_id, pat)))
         }
 
     Ok(())
 }
 
-async fn clear_study(client: &reqwest::Client, pat: String, study_id: &str, mut ids: Vec<String>, include_first_chapter: bool) -> Result<(), Box<dyn Error>> {
-    let chapters_left = if include_first_chapter {0} else {1};
-
+async fn clear_study(client: &reqwest::Client, pat: String, study_id: &str, mut ids: Vec<String>) -> Result<(), Box<dyn Error>> {
     let initial_size = ids.len();
 
     print!("Clearing study [{}] ", inner_progress_bar(0.0, PROGRESS_BAR_WIDTH)); 
     io::stdout().flush().unwrap();
 
-    while ids.len() > chapters_left {
+    while ids.len() > 1 {
         let progress = 1.0 - ids.len() as f32 / initial_size as f32;
         let id = ids.pop().unwrap();
         clear_chapter(client, pat.clone(), study_id, id).await?;
@@ -139,7 +136,7 @@ pub async fn post_overwrite(pat: String, study_id: &str, mut puzzles: Vec<Puzzle
     let minimum_chapter_id = (&chapter_ids[0]).to_string();
     let first_puzzle = puzzles.remove(0);
 
-    clear_study(&client, pat.clone(), study_id, chapter_ids, false).await?;
+    clear_study(&client, pat.clone(), study_id, chapter_ids).await?;
     post_puzzles_to_study(&client, pat.clone(), study_id, vec![first_puzzle], false).await?;
     clear_chapter(&client, pat.clone(), study_id, minimum_chapter_id).await?;
     println!("Uploading staged puzzles");
