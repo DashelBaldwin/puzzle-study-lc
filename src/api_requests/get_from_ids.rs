@@ -33,7 +33,7 @@ async fn get_puzzle_from_id(client: &reqwest::Client, id: String) -> Result<Puzz
         }
 
     } else {
-        Err(Box::from(format!("Couldn't find https://lichess.org/training/{}; was this ID entered correctly?", id)))
+        Err(Box::from(format!("Couldn't find https://lichess.org/training/{}; was this ID entered correctly?\n", id)))
     }
 
 }
@@ -46,7 +46,7 @@ pub async fn get_from_ids(ids: Vec<String>, ignore: Vec<String>) -> Result<Vec<P
     let mut total_duplicates: usize = 0;
 
     for id in ids {
-        if !ignore.contains(&id) {
+        if !ignore.contains(&id) && !puzzles.iter().any(|puzzle| puzzle.id == id) {
             puzzles.push(get_puzzle_from_id(&client, id).await?);
         } else {
             total_duplicates += 1;
@@ -54,7 +54,7 @@ pub async fn get_from_ids(ids: Vec<String>, ignore: Vec<String>) -> Result<Vec<P
     }
 
     let plural_char = if total_duplicates == 1 { "" } else { "s" };
-    if total_duplicates > 0 { println!("\nSkipping {} duplicate ID{}", total_duplicates, plural_char); }
+    if total_duplicates > 0 { println!("Skipping {} duplicate ID{}", total_duplicates, plural_char); }
 
     Ok(puzzles)
 }

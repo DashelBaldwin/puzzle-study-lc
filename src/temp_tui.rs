@@ -10,6 +10,8 @@ use crate::api_requests;
 use crate::api_requests::json_objects::Puzzle;
 use api_requests::{get_from_ids::get_from_ids, get_last_n_incorrect::get_last_n_incorrect, post_overwrite::post_overwrite};
 
+use crate::utils::termcolors::{Color, color};
+
 pub struct App {
     pat: String,
     study_id: String,
@@ -32,13 +34,14 @@ impl App {
     }
 
     fn state_message(&self) {
-        println!("\nPAT: {}", self.pat);
+        println!("\n{}{}", color("PAT: ", Color::Cyan), self.pat);
         if self.study_id.is_empty() {
-            println!("Target study not set");
+            println!("{}", color("Target study not set", Color::Yellow));
         } else {
-            println!("Study ID: {}", self.study_id);
+            println!("{}{}", color("Study ID: ", Color::Cyan), self.study_id);
         }
-        println!("{}/64 puzzles staged", self.puzzles.len());
+        let staged_puzzles_color = if self.puzzles.len() > 0 { Color::Cyan } else { Color::Yellow };
+        println!("{}/64 puzzles staged", color(&format!("{}", self.puzzles.len()), staged_puzzles_color));
     }
 
     fn prompt(&self) -> String {
@@ -52,12 +55,14 @@ impl App {
             .expect("Failed to read input");
     
         let input = input.trim();
+
+        println!();
     
         input.to_string()
     }
 
     fn help_message(&self) {
-        println!("\nWelcome to this scintillatingly beautiful temporary \"UI\".");
+        println!("Welcome to this strikingly beautiful temporary \"UI\".");
         println!("This is planned to be replaced with a cross-platform TUI, which is far outside the scope of this \
                 project, but it will look really cool.");
         println!("Until that's done, this works well enough, which is good, because adding hundreds of pgns to a study by hand is \
@@ -76,13 +81,13 @@ impl App {
     }
 
     fn options_message(&self) {
-        println!("\nq - quit");
+        println!("q - quit");
         println!("h - show this menu");
         println!("p - change PAT");
         println!("s - set/change study ID");
-        println!("f - *autofill puzzle set with your account's recent incorrect puzzles");
-        println!("[puzzle ID]... - *add one or more puzzles by their IDs (whitespace or comma delimited)");
-        println!("u - *upload all staged puzzles to the current study ID");
+        println!("f - autofill puzzle set with your account's recent incorrect puzzles*");
+        println!("[puzzle ID]... - add one or more puzzles by their IDs (whitespace or comma delimited)*");
+        println!("u - upload all staged puzzles to the current study ID*");
 
         println!("\n*uses api requests, will involve some delay");
     }
@@ -101,13 +106,12 @@ impl App {
             } else if input.is_empty() {
                 self.help_message();
             } else {
-                eprintln!("Failed to parse input (did you copy your PAT correctly?)");
+                eprintln!("{}", color("Failed to parse input (did you copy your PAT correctly?)\n", Color::Yellow)); 
             }
         }
     }
 
     fn get_user_pat(&mut self) {
-        self.is_data_stale = false;
         loop {
             println!("Paste your PAT below.");
             let input = self.prompt();
@@ -119,7 +123,7 @@ impl App {
                 self.pat = input.to_string();
                 return;
             } else {
-                eprintln!("Failed to parse input (did you copy your PAT correctly?)");
+                eprintln!("{}", color("Failed to parse input (did you copy your PAT correctly?)\n", Color::Yellow)); 
             }
         }
     }
@@ -137,7 +141,7 @@ impl App {
                 self.study_id = input.to_string();
                 return;
             } else {
-                println!("Failed to parse input (did you copy the study ID correctly?");
+                eprintln!("{}", color("Failed to parse input (did you copy the study ID correctly?)\n", Color::Yellow)); 
             }
         }
     }
@@ -146,18 +150,20 @@ impl App {
         let plural_char = if self.puzzles.len() == 1 { "" } else { "s" };
         println!("Cleared {} puzzle{}", self.puzzles.len(), plural_char);
         self.puzzles.clear();
+        self.is_data_stale = false;
     }
 
     async fn autofill(&mut self) -> Result<(), Box<dyn Error>> {
         if self.puzzles.len() >= 64 {
             return Err(Box::from("Stage is already full; use 'c' to clear it first"));
         }
+        self.is_data_stale = false;
         let n = 64 - self.puzzles.len();
-        println!("Autofilling {} puzzles", n);
+        println!("Autofilling {} puzzles (this may take a while)", n);
         let puzzles: Vec<Puzzle> = get_last_n_incorrect(self.pat.clone(), n, self.get_staged_ids()).await?;
         match puzzles.len() {
-            1 => println!("\nStaged 1 puzzle"),
-            _ => println!("\nStaged {} puzzles", puzzles.len())
+            1 => println!("Staged 1 puzzle"),
+            _ => println!("Staged {} puzzles", puzzles.len())
         }
         self.puzzles.extend(puzzles);
         Ok(())
@@ -171,8 +177,7 @@ impl App {
         } else if self.puzzles.is_empty() {
             return Err(Box::from("Must stage at least one puzzle before attempting to upload"));
         }
-        println!("Clearing study {} and uploading {} staged puzzles", self.study_id, self.puzzles.len());
-        println!("This may take a while...\n");
+        println!("Clearing study {} and uploading {} staged puzzles (this may take a while)", self.study_id, self.puzzles.len());
         post_overwrite(self.pat.clone(), &self.study_id, self.puzzles.clone()).await?;
         self.is_data_stale = true;
         Ok(())
@@ -194,19 +199,19 @@ impl App {
                 "c" | "C" => self.clear_puzzles(),
                 "f" | "F" => {
                     if let Err(e) = self.autofill().await {
-                        eprintln!("{}", e);
+                        eprintln!("{}", color(&e.to_string(), Color::Red));
                     }
                 }
                 "u" | "U" => {
                     if let Err(e) = self.upload().await {
-                        eprintln!("{}", e);
+                        eprintln!("{}", color(&e.to_string(), Color::Red));
                     }
                 },
                 _ => { 
                     let re = Regex::new(r"(?i)\b[a-z0-9]{5}\b(?:[, ]\s*)?").unwrap();
                     if re.is_match(&input) {
                         if self.puzzles.len() >= 64 {
-                            eprintln!("Stage is already full; use 'c' to clear it first");
+                            eprintln!("{}", color("Stage is already full; use 'c' to clear it first", Color::Red));
                         } else {
                             self.is_data_stale = false;
                             let re = Regex::new(r"(?i)\b[a-z0-9]{5}\b").unwrap();
@@ -221,7 +226,7 @@ impl App {
                                     puzzles = result;
                                 }
                                 Err(e) => {
-                                    eprintln!("{}", e);
+                                    eprintln!("{}", color(&e.to_string(), Color::Red));
                                 }
                             }
 
@@ -229,7 +234,8 @@ impl App {
                             let truncated_set: Vec<Puzzle>;
                             if new_size > 64 {
                                 let plural_char = if new_size - 64 == 1 { "" } else { "s" };
-                                println!("Truncated {} puzzle{} that would exceed stage capacity", new_size-64, plural_char);
+                                let warning_msg = &format!("Truncated {} puzzle{} that would exceed stage capacity", new_size-64, plural_char);
+                                println!("{}", color(warning_msg, Color::Yellow));
                                 truncated_set = puzzles[0..64 - self.puzzles.len()].iter().cloned().collect();
                                 
                             } else {
@@ -237,12 +243,12 @@ impl App {
                             }
                             self.puzzles.extend(truncated_set);
                             match puzzles.len() {
-                                1 => println!("\nStaged 1 puzzle"),
-                                _ => println!("\nStaged {} puzzles", puzzles.len())
+                                1 => println!("Staged 1 puzzle"),
+                                _ => println!("Staged {} puzzles", puzzles.len())
                             }
                         }
                     } else {
-                        println!("Failed to parse input (enter 'h' for a list of valid commands)\n"); 
+                        println!("{}", color("Failed to parse input (enter 'h' for a list of valid commands)", Color::Yellow)); 
                     }
                 }
             }

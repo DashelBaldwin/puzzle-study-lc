@@ -88,7 +88,7 @@ async fn get_study_chapter_ids(client: &reqwest::Client, pat: String, study_id: 
             }
         }
     } else {
-        return Err(Box::from(format!("Couldn't access study '{}' on behalf of the user associated with '{}'; were these tokens entered correctly?", study_id, pat)))
+        return Err(Box::from(format!("\nCouldn't access study '{}' on behalf of the user associated with '{}'; were these tokens entered correctly?", study_id, pat)))
     }
 
     Ok(ids)
@@ -105,7 +105,7 @@ async fn clear_chapter(client: &reqwest::Client, pat: String, study_id: &str, id
         .await?;
     
         if !response.status().is_success() {
-            return Err(Box::from(format!("Couldn't modify study '{}' on behalf of the user associated with '{}'; were these tokens entered correctly?", study_id, pat)))
+            return Err(Box::from(format!("\n\nCouldn't modify study '{}' on behalf of the user associated with '{}'; were these tokens entered correctly?", study_id, pat)))
         }
 
     Ok(())
@@ -114,17 +114,17 @@ async fn clear_chapter(client: &reqwest::Client, pat: String, study_id: &str, id
 async fn clear_study(client: &reqwest::Client, pat: String, study_id: &str, mut ids: Vec<String>) -> Result<(), Box<dyn Error>> {
     let initial_size = ids.len();
 
-    print!("Clearing study [{}] ", inner_progress_bar(0.0, PROGRESS_BAR_WIDTH)); 
+    print!("Clearing study [{}] 0% ", inner_progress_bar(0.0, PROGRESS_BAR_WIDTH)); 
     io::stdout().flush().unwrap();
 
     while ids.len() > 1 {
         let progress = 1.0 - ids.len() as f32 / initial_size as f32;
         let id = ids.pop().unwrap();
         clear_chapter(client, pat.clone(), study_id, id).await?;
-        print!("\x1b[0GClearing study [{}] ", inner_progress_bar(progress, PROGRESS_BAR_WIDTH)); 
+        print!("\x1b[0GClearing study [{}] {}% ", inner_progress_bar(progress, PROGRESS_BAR_WIDTH), (progress * 100.0).round() as i32);
         io::stdout().flush().unwrap();
     }
-    println!("\x1b[0GClearing study [{}] done! ", inner_progress_bar(1.0, PROGRESS_BAR_WIDTH)); 
+    println!("\x1b[0GClearing study [{}] 100% ", inner_progress_bar(1.0, PROGRESS_BAR_WIDTH)); 
     io::stdout().flush().unwrap();
 
     Ok(())
