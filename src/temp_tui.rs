@@ -139,7 +139,8 @@ impl App {
     }
 
     fn clear_puzzles(&mut self) {
-        println!("Cleared {} puzzles", self.puzzles.len());
+        let plural_char = if self.puzzles.len() == 1 { "" } else { "s" };
+        println!("Cleared {} puzzle{}", self.puzzles.len(), plural_char);
         self.puzzles.clear();
     }
 
