@@ -39,14 +39,22 @@ async fn get_puzzle_from_id(client: &reqwest::Client, id: String) -> Result<Puzz
 }
 
 
-pub async fn get_from_ids(ids: Vec<String>) -> Result<Vec<Puzzle>, Box<dyn Error>> {
+pub async fn get_from_ids(ids: Vec<String>, ignore: Vec<String>) -> Result<Vec<Puzzle>, Box<dyn Error>> {
     let client = reqwest::Client::new();
 
     let mut puzzles: Vec<Puzzle> = Vec::new();
+    let mut total_duplicates: usize = 0;
 
     for id in ids {
-        puzzles.push(get_puzzle_from_id(&client, id).await?);
+        if !ignore.contains(&id) {
+            puzzles.push(get_puzzle_from_id(&client, id).await?);
+        } else {
+            total_duplicates += 1;
+        }
     }
+
+    let plural_char = if total_duplicates == 1 { "" } else { "s" };
+    if total_duplicates > 0 { println!("\nSkipping {} duplicate ID{}", total_duplicates, plural_char); }
 
     Ok(puzzles)
 }

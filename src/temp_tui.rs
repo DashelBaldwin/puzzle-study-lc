@@ -27,6 +27,10 @@ impl App {
         }
     }
 
+    fn get_staged_ids(&self) -> Vec<String> {
+        self.puzzles.iter().map(|puzzle| puzzle.id.clone()).collect()
+    }
+
     fn state_message(&self) {
         println!("\nPAT: {}", self.pat);
         if self.study_id.is_empty() {
@@ -97,7 +101,7 @@ impl App {
             } else if input.is_empty() {
                 self.help_message();
             } else {
-                println!("Failed to parse input (did you copy your PAT correctly?)");
+                eprintln!("Failed to parse input (did you copy your PAT correctly?)");
             }
         }
     }
@@ -115,7 +119,7 @@ impl App {
                 self.pat = input.to_string();
                 return;
             } else {
-                println!("Failed to parse input (did you copy your PAT correctly?)");
+                eprintln!("Failed to parse input (did you copy your PAT correctly?)");
             }
         }
     }
@@ -123,7 +127,7 @@ impl App {
     fn get_study_id(&mut self) {
         self.is_data_stale = false;
         loop {
-            println!("Paste the study ID below.");
+            println!("Paste the study ID below");
             let input = self.prompt();
     
             let re = Regex::new(r"^[a-zA-Z0-9]{8}$").unwrap();
@@ -150,7 +154,7 @@ impl App {
         }
         let n = 64 - self.puzzles.len();
         println!("Autofilling {} puzzles", n);
-        let puzzles: Vec<Puzzle> = get_last_n_incorrect(self.pat.clone(), n).await?;
+        let puzzles: Vec<Puzzle> = get_last_n_incorrect(self.pat.clone(), n, self.get_staged_ids()).await?;
         match puzzles.len() {
             1 => println!("\nStaged 1 puzzle"),
             _ => println!("\nStaged {} puzzles", puzzles.len())
@@ -167,11 +171,10 @@ impl App {
         } else if self.puzzles.is_empty() {
             return Err(Box::from("Must stage at least one puzzle before attempting to upload"));
         }
-
-        self.is_data_stale = true;
         println!("Clearing study {} and uploading {} staged puzzles", self.study_id, self.puzzles.len());
         println!("This may take a while...\n");
         post_overwrite(self.pat.clone(), &self.study_id, self.puzzles.clone()).await?;
+        self.is_data_stale = true;
         Ok(())
     }
     
@@ -213,7 +216,7 @@ impl App {
 
                             let mut puzzles: Vec<Puzzle> = Vec::new();
 
-                            match get_from_ids(puzzle_ids).await {
+                            match get_from_ids(puzzle_ids, self.get_staged_ids()).await {
                                 Ok(result) => {
                                     puzzles = result;
                                 }
