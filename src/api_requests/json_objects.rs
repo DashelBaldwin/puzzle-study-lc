@@ -28,8 +28,7 @@ pub struct DirectPuzzleData {
 }
 
 #[derive(Deserialize)]
-pub struct DirectPuzzle {
-    pub id: String,
+pub struct DirectPuzzle { // removed "pub id: String" because compiler flagged it as unused
     pub rating: i32,
     pub solution: Vec<String>,
     pub themes: Vec<String>,

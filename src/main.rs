@@ -11,7 +11,7 @@ mod utils;
 mod temp_tui;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+async fn main() {
     // let mut puzzles = get_from_ids(vec!["VwGJ7", "f1kLA", "c5A8O", "eqlJZ", "AIlWN"]).await?;
     // for puzzle in get_last_n_incorrect(5).await? {
     //     puzzles.push(puzzle);
@@ -19,7 +19,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // post_overwrite("n38KtP3G", puzzles).await?;
 
     let mut app = temp_tui::App::new();
-    app.run().await?;
+    app.run().await;
 
-    Ok(())
 }

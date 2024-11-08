@@ -86,7 +86,7 @@ async fn get_study_chapter_ids(client: &reqwest::Client, pat: String, study_id: 
             }
         }
     } else {
-        println!("Error: failed to get study chapters")
+        println!("Error: failed to get study chapters");
     }
 
     Ok(ids)

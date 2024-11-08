@@ -13,7 +13,8 @@ use api_requests::{get_from_ids::get_from_ids, get_last_n_incorrect::get_last_n_
 pub struct App {
     pat: String,
     study_id: String,
-    puzzles: Vec<Puzzle>
+    puzzles: Vec<Puzzle>,
+    is_data_stale: bool
 }
 
 impl App {
@@ -21,7 +22,8 @@ impl App {
         Self {
             pat: "".to_string(),
             study_id: "".to_string(),
-            puzzles: Vec::new()
+            puzzles: Vec::new(),
+            is_data_stale: false
         }
     }
 
@@ -100,6 +102,7 @@ impl App {
     }
 
     fn get_user_pat(&mut self) {
+        self.is_data_stale = false;
         loop {
             println!("Paste your PAT below.");
             let input = self.prompt();
@@ -117,6 +120,7 @@ impl App {
     }
 
     fn get_study_id(&mut self) {
+        self.is_data_stale = false;
         loop {
             println!("Paste the study ID below.");
             let input = self.prompt();
@@ -134,6 +138,9 @@ impl App {
     }
 
     async fn autofill(&mut self) -> Result<(), Box<dyn Error>> {
+        if self.puzzles.len() >= 64 {
+            println!("Error: stage is full"); // return Error here eventually
+        }
         let n = 64 - self.puzzles.len();
         println!("Autofilling {} puzzles", n);
         let puzzles: Vec<Puzzle> = get_last_n_incorrect(self.pat.clone(), n).await?;
@@ -145,14 +152,18 @@ impl App {
         Ok(())
     }
 
-    async fn upload(&self) -> Result<(), Box<dyn Error>> {
-        println!("Clearing study {} and uploading {} staged puzzles.", self.study_id, self.puzzles.len());
+    async fn upload(&mut self) -> Result<(), Box<dyn Error>> {
+        if self.is_data_stale {
+            println!("Error: this set has already been uploaded");
+        }
+        self.is_data_stale = true;
+        println!("Clearing study {} and uploading {} staged puzzles", self.study_id, self.puzzles.len());
         println!("This may take a while...\n");
         post_overwrite(self.pat.clone(), &self.study_id, self.puzzles.clone()).await?;
         Ok(())
     }
     
-    pub async fn run(&mut self) -> Result<(), Box<dyn Error>> {
+    pub async fn run(&mut self) {
         self.get_initial_user_pat();
 
         loop {
@@ -161,26 +172,57 @@ impl App {
             let input: String = self.prompt();
 
             match input.as_str() {
-                "q" | "Q" => break Ok(()),
+                "q" | "Q" => break,
                 "h" | "H" => self.options_message(),
                 "p" | "P" => self.get_user_pat(),
                 "s" | "S" => self.get_study_id(),
-                "f" | "F" => self.autofill().await?,
-                "u" | "U" => self.upload().await?,
+                "f" | "F" => {
+                    if let Err(e) = self.autofill().await {
+                        eprintln!("{}", e);
+                    }
+                }
+                "u" | "U" => {
+                    if let Err(e) = self.upload().await {
+                        eprintln!("{}", e);
+                    }
+                },
                 _ => { 
                     let re = Regex::new(r"(?i)\b[a-z0-9]{5}\b(?:[, ]\s*)?").unwrap();
                     if re.is_match(&input) {
-                        let re = Regex::new(r"(?i)\b[a-z0-9]{5}\b").unwrap();
-                        let puzzle_ids: Vec<String> = re.find_iter(&input)
-                            .map(|mat| mat.as_str().to_string())
-                            .collect();
+                        if self.puzzles.len() >= 64 {
+                            println!("Error: stage is full");
+                        } else {
+                            self.is_data_stale = false;
+                            let re = Regex::new(r"(?i)\b[a-z0-9]{5}\b").unwrap();
+                            let puzzle_ids: Vec<String> = re.find_iter(&input)
+                                .map(|mat| mat.as_str().to_string())
+                                .collect();
 
-                        let puzzles: Vec<Puzzle> = get_from_ids(puzzle_ids).await?;
-                        match puzzles.len() {
-                            1 => println!("\nStaged 1 puzzle"),
-                            _ => println!("\nStaged {} puzzles", puzzles.len())
+                            let mut puzzles: Vec<Puzzle> = Vec::new();
+
+                            match get_from_ids(puzzle_ids).await {
+                                Ok(result) => {
+                                    puzzles = result;
+                                }
+                                Err(e) => {
+                                    eprintln!("{}", e);
+                                }
+                            }
+
+                            match puzzles.len() {
+                                1 => println!("\nStaged 1 puzzle"),
+                                _ => println!("\nStaged {} puzzles", puzzles.len())
+                            }
+
+                            let new_size =  self.puzzles.len() + puzzles.len();
+                            if new_size > 64 {
+                                let plural_char = if new_size - 64 == 1 { "" } else { "s" };
+                                println!("Truncated {} puzzle{} that would exceed stage capacity", new_size-64, plural_char);
+                                self.puzzles.extend(puzzles[0..64 - self.puzzles.len()].iter().cloned());
+                            } else {
+                                self.puzzles.extend(puzzles);
+                            }
                         }
-                        self.puzzles.extend(puzzles);
                     } else {
                         println!("Failed to parse input (enter 'h' for a list of valid commands)\n"); 
                     }
