@@ -41,18 +41,6 @@ pub struct DirectPuzzleGameData {
 
 impl Puzzle {
     pub fn info_comment(&self) -> String {
-        let fen_regions: Vec<&str> = self.fen
-            .split(|c: char| c == '/' || c.is_whitespace())
-            .collect();
-
-        let ep_flag = fen_regions[10];
-        
-        let last_move = if ep_flag != "-" {
-            format!("Last move: {}\n", ep_flag)
-        } else {
-            "".to_string()
-        };
-
         let link: String = format!("https://lichess.org/training/{}", self.id);
         let source: &str;
         if self.imported_directly == Some(true) {
@@ -61,8 +49,8 @@ impl Puzzle {
             source = "(from puzzle history)"
         };
         let comment: String = format!(
-            "{}{} {}\nRating - {}\nThemes - {}",
-            last_move, link, source.to_string(), self.rating, self.themes.join(", ")
+            "{} {}\nRating - {}\nThemes - {}",
+            link, source.to_string(), self.rating, self.themes.join(", ")
         );
 
         return comment;
@@ -88,9 +76,21 @@ impl Puzzle {
         
         let mut pgn_output: String;
 
+        let fen_regions: Vec<&str> = self.fen
+            .split(|c: char| c == '/' || c.is_whitespace())
+            .collect();
+
+        let ep_flag = fen_regions[10];
+        
+        let last_move = if ep_flag != "-" {
+            format!("(Last move: {})\n", ep_flag)
+        } else {
+            "".to_string()
+        };
+
         // lazy alert!
         if puzzle_color == "w" {
-            pgn_output = "{ White to move }\n".to_string();
+            pgn_output = format!("{{ White to move \n{}}}\n", last_move).to_string();
             for (i, mv) in pgn_moves.iter().enumerate() {
                 let move_number = i / 2 + 1;
                 let is_player_move = i % 2 == 0;
@@ -111,7 +111,7 @@ impl Puzzle {
             }
             return format!("{}\n\n{}", headers, pgn_output);
         } else {
-            pgn_output = "{ Black to move }\n".to_string();
+            pgn_output = format!("{{ Black to move \n{}}}\n", last_move).to_string();
             for (i, mv) in pgn_moves.iter().enumerate() {
                 let move_number = (i + 1) / 2 + 1;
                 let is_player_move = i % 2 == 1;

@@ -31,6 +31,8 @@ fn concatenate_pgn(puzzles: Vec<Puzzle>, offset_index: bool) -> String {
 }
 
 async fn post_puzzles_to_study(client: &reqwest::Client, pat: String, study_id: &str, puzzles: Vec<Puzzle>, offset_index: bool) -> Result<(), Box<dyn Error>> {
+    let len = puzzles.clone().len();
+    
     let mut headers = HeaderMap::new();
     headers.insert(AUTHORIZATION, HeaderValue::from_str(&format!("Bearer {}", pat))?);
 
@@ -53,7 +55,7 @@ async fn post_puzzles_to_study(client: &reqwest::Client, pat: String, study_id: 
         .send()
         .await?;
 
-    if !response.status().is_success() {
+    if !response.status().is_success() && len > 1 {
         eprintln!("Failed to import PGN: {:?}", response.text().await?);
     } 
 

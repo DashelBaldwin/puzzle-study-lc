@@ -79,7 +79,8 @@ impl App {
         println!("f - *autofill puzzle set with your account's recent incorrect puzzles");
         println!("[puzzle ID]... - *add one or more puzzles by their IDs (whitespace or comma delimited)");
         println!("u - *upload all staged puzzles to the current study ID");
-        println!("*uses api requests, will involve some delay");
+
+        println!("\n*uses api requests, will involve some delay");
     }
 
     fn get_initial_user_pat(&mut self) {
@@ -128,7 +129,7 @@ impl App {
             let re = Regex::new(r"^[a-zA-Z0-9]{8}$").unwrap();
     
             if re.is_match(&input) {
-                println!("Using target study ID to {}.", input);
+                println!("Set target study ID to {}.", input);
                 self.study_id = input.to_string();
                 return;
             } else {
@@ -137,9 +138,14 @@ impl App {
         }
     }
 
+    fn clear_puzzles(&mut self) {
+        println!("Cleared {} puzzles", self.puzzles.len());
+        self.puzzles.clear();
+    }
+
     async fn autofill(&mut self) -> Result<(), Box<dyn Error>> {
         if self.puzzles.len() >= 64 {
-            println!("Error: stage is full"); // return Error here eventually
+            return Err(Box::from("Stage is already full; use 'c' to clear it first"));
         }
         let n = 64 - self.puzzles.len();
         println!("Autofilling {} puzzles", n);
@@ -154,8 +160,13 @@ impl App {
 
     async fn upload(&mut self) -> Result<(), Box<dyn Error>> {
         if self.is_data_stale {
-            println!("Error: this set has already been uploaded");
+            return Err(Box::from("The currently staged puzzles have already been uploaded to this study"));
+        } else if self.study_id.is_empty() {
+            return Err(Box::from("Must enter a target study id before attempting to upload"));
+        } else if self.puzzles.is_empty() {
+            return Err(Box::from("Must stage at least one puzzle before attempting to upload"));
         }
+
         self.is_data_stale = true;
         println!("Clearing study {} and uploading {} staged puzzles", self.study_id, self.puzzles.len());
         println!("This may take a while...\n");
@@ -176,6 +187,7 @@ impl App {
                 "h" | "H" => self.options_message(),
                 "p" | "P" => self.get_user_pat(),
                 "s" | "S" => self.get_study_id(),
+                "c" | "C" => self.clear_puzzles(),
                 "f" | "F" => {
                     if let Err(e) = self.autofill().await {
                         eprintln!("{}", e);
@@ -190,7 +202,7 @@ impl App {
                     let re = Regex::new(r"(?i)\b[a-z0-9]{5}\b(?:[, ]\s*)?").unwrap();
                     if re.is_match(&input) {
                         if self.puzzles.len() >= 64 {
-                            println!("Error: stage is full");
+                            eprintln!("Stage is already full; use 'c' to clear it first");
                         } else {
                             self.is_data_stale = false;
                             let re = Regex::new(r"(?i)\b[a-z0-9]{5}\b").unwrap();
