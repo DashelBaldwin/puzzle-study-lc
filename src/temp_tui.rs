@@ -63,12 +63,12 @@ impl App {
 
     fn help_message(&self) {
         println!("Welcome to this strikingly beautiful temporary \"UI\"");
-        
+
         println!("\nThis is planned to be replaced with a cross-platform TUI, which is far outside the scope of this \
                 project, but it will look really cool");
         println!("Until that's done, this works well enough, which is good, because adding hundreds of pgns to a study by hand is \
                 even less fun than making async UIs in Rust");
-        println!("This is an example of the studies this script generates: https://lichess.org/study/UXdmGPS4/");
+        println!("This is an example of the studies this script generates: https://lichess.org/study/xjipXf1Q/");
 
         println!("\nAnyway, you'll first need to setup a Personal Access Token on your lichess.org account");
         println!("You can do this here: https://lichess.org/account/oauth/token/create?scopes[]=puzzle:read&scopes[]=study:read&scopes[]=study:write&description=Puzzle+Studies");
