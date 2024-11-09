@@ -62,22 +62,24 @@ impl App {
     }
 
     fn help_message(&self) {
-        println!("Welcome to this strikingly beautiful temporary \"UI\".");
-        println!("This is planned to be replaced with a cross-platform TUI, which is far outside the scope of this \
-                project, but it will look really cool.");
+        println!("Welcome to this strikingly beautiful temporary \"UI\"");
+        
+        println!("\nThis is planned to be replaced with a cross-platform TUI, which is far outside the scope of this \
+                project, but it will look really cool");
         println!("Until that's done, this works well enough, which is good, because adding hundreds of pgns to a study by hand is \
-                even less fun than making async UIs in Rust.");
-    
-        println!("\nAnyway, you'll first need to setup a Personal Access Token on your lichess.org account.");
+                even less fun than making async UIs in Rust");
+        println!("This is an example of the studies this script generates: https://lichess.org/study/UXdmGPS4/");
+
+        println!("\nAnyway, you'll first need to setup a Personal Access Token on your lichess.org account");
         println!("You can do this here: https://lichess.org/account/oauth/token/create?scopes[]=puzzle:read&scopes[]=study:read&scopes[]=study:write&description=Puzzle+Studies");
     
-        println!("\nIf you don't want to make an account just to see how this works, I've created an example one for you.");
-        println!("Note that anyone can upload stuff to the studies on this account, since the PAT is public.");
-        println!("(Account sharing is probably against lichess TOS, so don't tell anyone.)");
+        println!("\nIf you don't want to make an account just to see how this works, I've created an example one for you");
+        println!("Note that anyone can upload stuff to the studies on this account, since the PAT is public");
+        println!("The account's profile is: https://lichess.org/@/lazy_woodpecker");
+        println!("You can use this PAT for full access to the endpoints this script invokes: lip_ewwjVusZzl6ovLXainV5");
+        println!("The other studies it has access to can be found by searching 'owner:lazy_woodpecker' at https://lichess.org/study/");
     
-        println!("\nOnce you have your PAT, paste it below. Note that tokens are not validated until they are used in an actual request.");
-    
-        // Need to make this account and add a link to its study page
+        println!("\nOnce you have a PAT, paste it below. Note that tokens are not validated until they are used in an actual request");
     }
 
     fn options_message(&self) {
@@ -93,7 +95,7 @@ impl App {
     }
 
     fn get_initial_user_pat(&mut self) {
-        println!("Congrats, you got this working. To get started, enter a lichess PAT, or press [ENTER] if you're confused.");
+        println!("Welcome. To get started, enter a lichess PAT, or press [ENTER] if you're confused.");
         loop {
             let input = self.prompt();
     
