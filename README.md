@@ -1,9 +1,14 @@
 # Lichess Puzzle Study Generator
 This is a tool that creates and uploads puzzle study sets via the Lichess API, intended for use by chess improvers employing [the woodpecker method](/https://forwardchess.com/blog/what-is-the-woodpecker-method/).
 
-While a proper UI is still being developed for this tool, a temporary UI has been created as a placeholder. This will allow you to access the tool's capabilities through a process that runs in the terminal. 
+While a proper UI is still being developed for this tool, a temporary UI has been created as a placeholder. This will allow you to access the tool's capabilities from the console. 
 
 **Example:** https://lichess.org/study/xjipXf1Q/sdxsarb9
+
+**Features:**
+* Fetch puzzles by their IDs
+* Fetch puzzles you recently missed in puzzle training
+* Generate and upload a puzzle study from fetched puzzles
 
 ## Tech Used:
 
