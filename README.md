@@ -1,4 +1,8 @@
-# Lichess Puzzle Study Generator
+<div align="center">
+  <img src="https://i.postimg.cc/T2HcGcDG/icon.webp" width="100">
+  <h1>Lichess Puzzle Study Generator</h1>
+</div>
+
 This is a tool that creates and uploads puzzle study sets via the Lichess API, intended for use by chess improvers employing [the woodpecker method](/https://forwardchess.com/blog/what-is-the-woodpecker-method/).
 
 While a proper UI is still being developed for this tool, a temporary UI has been created as a placeholder. This will allow you to access the tool's capabilities from the console. 
