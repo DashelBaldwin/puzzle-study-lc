@@ -1,7 +1,7 @@
 # Lichess Puzzle Study Generator
-This work-in-progress tool creates and uploads puzzle study sets via the Lichess API, intended for use by chess improvers employing [the woodpecker method](/https://forwardchess.com/blog/what-is-the-woodpecker-method/).
+This is a tool that creates and uploads puzzle study sets via the Lichess API, intended for use by chess improvers employing [the woodpecker method](/https://forwardchess.com/blog/what-is-the-woodpecker-method/).
 
-While a proper UI is still being developed for this backend, a temporary UI has been created as a placeholder. This will allow you to access the tool's capabilities through a process that runs in the terminal. 
+While a proper UI is still being developed for this tool, a temporary UI has been created as a placeholder. This will allow you to access the tool's capabilities through a process that runs in the terminal. 
 
 **Example:** https://lichess.org/study/xjipXf1Q/sdxsarb9
 
@@ -9,7 +9,7 @@ While a proper UI is still being developed for this backend, a temporary UI has 
 
 **Rust**
 
-My motivation for creating this project was to familiarize myself with the Rust programming language; therefore, Rust is the exclusive language implemented. Given my limited familiarity with many of Rust’s features, I decided it would be much more beneficial to undertake a substantial project rather than solely follow tutorials. I intentionally selected a project that would require me to engage with Rust’s more complex aspects, including asynchronous tasks and comprehensive error handling."
+My motivation for creating this project was to familiarize myself with the Rust programming language; therefore, Rust is the exclusive language implemented. Given my limited familiarity with many of Rust’s features, I decided it would be much more beneficial to undertake a substantial project rather than solely follow tutorials. I intentionally selected a project that would require me to engage with Rust’s more complex aspects, including asynchronous tasks and comprehensive error handling.
 
 At some point, I plan to pivot this project towards a web-based application, focusing on frontend development and ease of use by the general public.
 
