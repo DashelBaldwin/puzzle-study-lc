@@ -69,7 +69,7 @@ impl PieceLocator {
                 if (current.name == self.target.name) && (current.color == self.target.color) {
                     if let Some(rank_restriction) = self.scope_restriction.0 {
                         if rank as usize != rank_restriction { break; }
-                    } else if let Some(file_restriction)= self.scope_restriction.1 {
+                    } else if let Some(file_restriction) = self.scope_restriction.1 {
                         if file as usize != file_restriction { break; }
                     }
                     return Some((rank as usize, file as usize));
@@ -220,7 +220,7 @@ impl Board {
                 match to.0 {
                     2 => self.contents[to.0 - 1][to.1] = None,
                     5 => self.contents[to.0 + 1][to.1] = None,
-                    _ => eprintln!("ep target not in valid ep location")
+                    _ => ()
                 }
                 ()
             }
@@ -242,7 +242,7 @@ impl Board {
             match to.1 {
                 2 => self.normal_movement((from.0, 0), (from.0, 3)),
                 6 => self.normal_movement((from.0, 7), (from.0, 5)),
-                _ => eprintln!("castling king landed at incorrect location")
+                _ => ()
             }
         } 
         self.normal_movement(from, to);
@@ -310,11 +310,8 @@ impl Board {
                     return Some(origin);
                 }
             }
-            PieceName::Pawn => {
-                eprintln!("find_origin_of_move: pawn searched for origin square as if it were another piece")
-            }
+            PieceName::Pawn => ()
         }
-        eprintln!("find_origin_of_move: no piece was located");
         None
     }
 
@@ -337,7 +334,6 @@ impl Board {
         ).locate() {
             return Some(origin);
         }
-        println!("find_origin_of_pawn_move: No pawn move found");
         None
     }
 }
@@ -358,10 +354,7 @@ fn piecename_from_char(c: char) -> PieceName {
         'B' => PieceName::Bishop,
         'Q' => PieceName::Queen,
         'R' => PieceName::Rook,
-        _ => {
-            println!("piecename_from_char: no matching piece for char {}", c);
-            PieceName::King
-        }
+        _ => PieceName::Pawn
     }
 }
 
@@ -369,7 +362,6 @@ fn file_idx_from_char(c: char) -> usize {
     if ('a'..='h').contains(&c) {
         (c as usize) - ('a' as usize)
     } else {
-        println!("file_idx_from_char: no matching file for char {}", c);
         0
     }
 }
