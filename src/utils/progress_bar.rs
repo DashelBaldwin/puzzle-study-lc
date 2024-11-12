@@ -1,5 +1,3 @@
-// progress_bar.rs
-
 pub const PROGRESS_BAR_WIDTH: usize = 20;
 
 pub fn inner_progress_bar(progress: f32, width: usize) -> String {

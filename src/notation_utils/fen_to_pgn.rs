@@ -1,5 +1,3 @@
-// fen_to_pgn.rs
-
 pub fn fen_to_pgn(fen: impl Into<String>, ambiguous_moves: impl Into<Vec<String>>) -> Vec<String> {
     let fen: String = fen.into();          
     let ambiguous_moves: Vec<String> = ambiguous_moves.into();

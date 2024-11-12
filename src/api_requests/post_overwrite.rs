@@ -1,5 +1,3 @@
-// post_overwrite.rs
-
 use std::io::{self, Write};
 use std::error::Error;
 

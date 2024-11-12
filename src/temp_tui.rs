@@ -1,5 +1,3 @@
-// temp_tui.rs
-
 use std::error::Error;
 use std::io::{self, Write};
 

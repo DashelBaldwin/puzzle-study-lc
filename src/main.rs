@@ -1,6 +1,3 @@
-// main.rs
-
-// TODO: add a readme so this looks like an actual project
 // Possible TODO: also allow pasting chess.com puzzle exported pgns into cli as input for convenience
 
 mod api_requests;

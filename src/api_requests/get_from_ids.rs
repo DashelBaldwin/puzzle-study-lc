@@ -1,5 +1,3 @@
-// get_from_ids.rs
-
 use std::error::Error;
 
 use super::json_objects::Puzzle;

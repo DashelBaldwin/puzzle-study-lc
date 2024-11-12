@@ -1,5 +1,3 @@
-// termcolors.rs
-
 #[allow(dead_code)]
 #[repr(usize)]
 pub enum Color {

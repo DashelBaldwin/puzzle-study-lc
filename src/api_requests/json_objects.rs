@@ -1,5 +1,3 @@
-// json_objects.rs
-
 use serde::Deserialize;
 use crate::notation_utils;
 

@@ -1,5 +1,3 @@
-// pgn_to_fen.rs
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum PieceName {
     Pawn,
