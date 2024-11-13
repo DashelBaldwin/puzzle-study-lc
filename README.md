@@ -10,6 +10,7 @@ Lichess lacks any sort of dedicated feature for organizing puzzle sets. If one w
 While a proper UI is still being developed for this tool, a temporary UI has been created as a placeholder. This will allow you to access the tool's capabilities from the console. 
 
 **Example:** https://lichess.org/study/xjipXf1Q/
+
 (Follow the solution if you can't solve the first one!) => https://lichess.org/training/zOm2u
 
 **Features:**
