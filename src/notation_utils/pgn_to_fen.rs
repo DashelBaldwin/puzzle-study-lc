@@ -33,7 +33,7 @@ struct PieceLocator {
     search_direction: (i32, i32),
     scope_restriction: (Option<usize>, Option<usize>),
     board: Board,
-    is_jumper: bool
+    is_jump: bool
 }
 
 impl PieceLocator {
@@ -43,7 +43,7 @@ impl PieceLocator {
         search_direction: (i32, i32),
         scope_restriction: (Option<usize>, Option<usize>),
         board: &Board,
-        is_jumper: bool,
+        is_jump: bool,
     ) -> Self {
         Self {
             origin,
@@ -51,7 +51,7 @@ impl PieceLocator {
             target,
             scope_restriction,
             board: board.clone(),
-            is_jumper,
+            is_jump,
         }
     }
 
@@ -76,7 +76,7 @@ impl PieceLocator {
                 break; 
             }
 
-            if self.is_jumper { break; }
+            if self.is_jump { break; }
 
             rank += self.search_direction.0;
             file += self.search_direction.1;
@@ -247,6 +247,20 @@ impl Board {
         self.normal_movement(from, to);
     }
 
+    fn spawn_locators(
+        &self,
+        directions: &[(i32, i32)],
+        end_square: (usize, usize),
+        piece: Piece,
+        scope_restriction: (Option<usize>, Option<usize>),
+        is_jump: bool,
+        board: &Board,
+    ) -> Vec<PieceLocator> {
+        directions.iter()
+            .map(|&(dx, dy)| PieceLocator::new(end_square, piece, (dx, dy), scope_restriction, &board.clone(), is_jump))
+            .collect()
+    }
+
     fn find_origin_of_move(
         &self,
         end_square: (usize, usize), 
@@ -255,39 +269,16 @@ impl Board {
         scope_restriction: (Option<usize>, Option<usize>)
     ) -> Option<(usize, usize)> {
         let piece = Piece { name: piece_name, color: piece_color };
-        let hv_locators: Vec<PieceLocator> = vec![
-            PieceLocator::new(end_square, piece, (0, 1), scope_restriction, &self.clone(), false),
-            PieceLocator::new(end_square, piece, (0, -1), scope_restriction, &self.clone(), false),
-            PieceLocator::new(end_square, piece, (1, 0), scope_restriction, &self.clone(), false),
-            PieceLocator::new(end_square, piece, (-1, 0), scope_restriction, &self.clone(), false)
-        ];
-        let diag_locators: Vec<PieceLocator> = vec![
-            PieceLocator::new(end_square, piece, (1, 1), scope_restriction, &self.clone(), false),
-            PieceLocator::new(end_square, piece, (1, -1), scope_restriction, &self.clone(), false),
-            PieceLocator::new(end_square, piece, (-1, 1), scope_restriction, &self.clone(), false),
-            PieceLocator::new(end_square, piece, (-1, -1), scope_restriction, &self.clone(), false)
-        ];
-        let kn_locators: Vec<PieceLocator> = vec![
-            PieceLocator::new(end_square, piece, (1, 2), scope_restriction, &self.clone(), true),
-            PieceLocator::new(end_square, piece, (1, -2), scope_restriction, &self.clone(), true),
-            PieceLocator::new(end_square, piece, (2, 1), scope_restriction, &self.clone(), true),
-            PieceLocator::new(end_square, piece, (2, -1), scope_restriction, &self.clone(), true),
-            PieceLocator::new(end_square, piece, (-1, 2), scope_restriction, &self.clone(), true),
-            PieceLocator::new(end_square, piece, (-1, -2), scope_restriction, &self.clone(), true),
-            PieceLocator::new(end_square, piece, (-2, 1), scope_restriction, &self.clone(), true),
-            PieceLocator::new(end_square, piece, (-2, -1), scope_restriction, &self.clone(), true)
-        ];
-        let kg_locators: Vec<PieceLocator> = vec![
-            PieceLocator::new(end_square, piece, (1, 1), scope_restriction, &self.clone(), true),
-            PieceLocator::new(end_square, piece, (1, -1), scope_restriction, &self.clone(), true),
-            PieceLocator::new(end_square, piece, (-1, 1), scope_restriction, &self.clone(), true),
-            PieceLocator::new(end_square, piece, (-1, -1), scope_restriction, &self.clone(), true),
-            PieceLocator::new(end_square, piece, (0, 1), scope_restriction, &self.clone(), true),
-            PieceLocator::new(end_square, piece, (0, -1), scope_restriction, &self.clone(), true),
-            PieceLocator::new(end_square, piece, (1, 0), scope_restriction, &self.clone(), true),
-            PieceLocator::new(end_square, piece, (-1, 0), scope_restriction, &self.clone(), true)
-        ];
-        let q_locators: Vec<PieceLocator> = [diag_locators.as_slice(), hv_locators.as_slice()].concat();
+        let hv_directions = [(0, 1), (0, -1), (1, 0), (-1, 0)];
+        let diag_directions = [(1, 1), (1, -1), (-1, 1), (-1, -1)];
+        let kn_directions = [(1, 2), (1, -2), (2, 1), (2, -1), (-1, 2), (-1, -2), (-2, 1), (-2, -1)];
+        let kg_directions = [(1, 1), (1, -1), (-1, 1), (-1, -1), (0, 1), (0, -1), (1, 0), (-1, 0)];
+
+        let hv_locators = self.spawn_locators(&hv_directions, end_square, piece, scope_restriction, false, self);
+        let diag_locators = self.spawn_locators(&diag_directions, end_square, piece, scope_restriction, false, self);
+        let kn_locators = self.spawn_locators(&kn_directions, end_square, piece, scope_restriction, true, self);
+        let kg_locators = self.spawn_locators(&kg_directions, end_square, piece, scope_restriction, true, self);
+        let q_locators = [diag_locators.as_slice(), hv_locators.as_slice()].concat();
 
         match piece_name {
             PieceName::Rook => if let Some(origin) = find_piece_location(hv_locators) {
