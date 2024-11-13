@@ -38,6 +38,26 @@ pub struct DirectPuzzleGameData {
 }
 
 impl Puzzle {
+    fn formatted_themes(&self) -> String {
+        self.themes.iter().map(|s| {
+            let mut result = String::new();
+            let mut was_lower = false;
+
+            for (i, ch) in s.chars().enumerate() {
+                if i > 0 && ch.is_uppercase() && was_lower {
+                    result.push(' ');
+                }
+                if i == 0 {
+                    result.push(ch.to_ascii_uppercase());
+                } else {
+                    result.push(ch.to_ascii_lowercase());
+                }
+                was_lower = ch.is_lowercase();
+            }
+        result
+        }).collect::<Vec<_>>().join(", ")
+    }
+
     pub fn info_comment(&self) -> String {
         let link: String = format!("https://lichess.org/training/{}", self.id);
         let source: &str;
@@ -48,7 +68,7 @@ impl Puzzle {
         };
         let comment: String = format!(
             "{} {}\nRating - {}\nThemes - {}",
-            link, source.to_string(), self.rating, self.themes.join(", ")
+            link, source.to_string(), self.rating, self.formatted_themes()
         );
 
         return comment;
