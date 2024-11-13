@@ -73,20 +73,24 @@ async fn get_study_chapter_ids(client: &reqwest::Client, pat: String, study_id: 
 
     let mut ids : Vec<String> = Vec::new();
 
-    if response.status().is_success() {
-        let body: String = response.text().await?;
+    if !response.status().is_success() {
+        return Err(format!(
+            "\nCouldn't access study '{}' on behalf of the user associated with '{}'; were these tokens entered correctly?", 
+            study_id, 
+            pat
+        ).into());
+    }
+
+    let body: String = response.text().await?;
         
-        for line in body.lines() {
-            if line.starts_with("[Site ") {          
-                if let Some(id) = line.split('/').last() {
-                    if let Some(trimmed) = id.strip_suffix("\"]") {
-                        ids.push(trimmed.to_string());
-                    }
+    for line in body.lines() {
+        if line.starts_with("[Site ") {          
+            if let Some(id) = line.split('/').last() {
+                if let Some(trimmed) = id.strip_suffix("\"]") {
+                    ids.push(trimmed.to_string());
                 }
             }
         }
-    } else {
-        return Err(Box::from(format!("\nCouldn't access study '{}' on behalf of the user associated with '{}'; were these tokens entered correctly?", study_id, pat)))
     }
 
     Ok(ids)
@@ -103,7 +107,10 @@ async fn clear_chapter(client: &reqwest::Client, pat: String, study_id: &str, id
         .await?;
     
         if !response.status().is_success() {
-            return Err(Box::from(format!("\n\nCouldn't modify study '{}' on behalf of the user associated with '{}'; were these tokens entered correctly?", study_id, pat)))
+            return Err(format!(
+                "\n\nCouldn't modify study '{}' on behalf of the user associated with '{}'; were these tokens entered correctly?", 
+                study_id, pat
+            ).into())
         }
 
     Ok(())
@@ -137,6 +144,7 @@ pub async fn post_overwrite(pat: String, study_id: &str, mut puzzles: Vec<Puzzle
     let first_puzzle = puzzles.remove(0);
 
     clear_study(&client, pat.clone(), study_id, chapter_ids).await?;
+    
     post_puzzles_to_study(&client, pat.clone(), study_id, vec![first_puzzle], false).await?;
     clear_chapter(&client, pat.clone(), study_id, minimum_chapter_id).await?;
     println!("Uploading staged puzzles");

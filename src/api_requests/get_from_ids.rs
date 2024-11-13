@@ -11,29 +11,24 @@ async fn get_puzzle_from_id(client: &reqwest::Client, id: String) -> Result<Puzz
         .send()
         .await?;
 
-    if response.status().is_success() {
-        let body = response.text().await?;
-        match parse_direct_puzzle(&body) {
-            Ok(direct_puzzle) => {
-                let puzzle = Puzzle {
-                    id: id,
-                    rating: direct_puzzle.puzzle.rating,
-                    solution: direct_puzzle.puzzle.solution,
-                    themes: direct_puzzle.puzzle.themes,
-                    fen: notation_utils::pgn_to_fen::pgn_to_fen(&direct_puzzle.game.pgn),
-                    imported_directly: Some(true)
-                };
-                Ok(puzzle)
-            }
-            Err(e) => {
-                Err(Box::from(e))
-            }
-        }
-
-    } else {
-        Err(Box::from(format!("Couldn't find https://lichess.org/training/{}; was this ID entered correctly?\n", id)))
+    if !response.status().is_success() {
+        return Err(format!(
+            "Couldn't find https://lichess.org/training/{}; was this ID entered correctly?\n",
+            id
+        ).into());
     }
 
+    let body = response.text().await?;
+    let parsed_puzzle = parse_direct_puzzle(&body)?;
+
+    Ok(Puzzle {
+        id,
+        rating: parsed_puzzle.puzzle.rating,
+        solution: parsed_puzzle.puzzle.solution,
+        themes: parsed_puzzle.puzzle.themes,
+        fen: notation_utils::pgn_to_fen::pgn_to_fen(&parsed_puzzle.game.pgn),
+        imported_directly: Some(true),
+    })
 }
 
 

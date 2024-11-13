@@ -7,12 +7,17 @@ use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 
 const PAGE_SIZE: i32 = 50;
 
-async fn get_puzzle_history_incorrect_page(client: &reqwest::Client, pat: String, max: i32, before_date: i64, ignore: &Vec<String>) -> Result<(Vec<Puzzle>, i64, usize), Box<dyn Error>> {
+async fn get_puzzle_history_incorrect_page(
+    client: &reqwest::Client,
+    pat: String,
+    max: i32,
+    before_date: i64,
+    ignore: &Vec<String>
+) -> Result<(Vec<Puzzle>, i64, usize), Box<dyn Error>> {
     let mut headers = HeaderMap::new();
     headers.insert(AUTHORIZATION, HeaderValue::from_str(&format!("Bearer {}", pat))?);
 
     let mut query = vec![("max", i64::from(max))];
-
     if before_date > -1 {
         query.push(("before", before_date));
     }
@@ -24,37 +29,38 @@ async fn get_puzzle_history_incorrect_page(client: &reqwest::Client, pat: String
         .send()
         .await?;
 
-    if response.status().is_success() {
-        let body = response.text().await?;
-        let puzzle_attempt_strings: Vec<&str> = body.lines().collect();
-        let mut incorrect_puzzles: Vec<Puzzle> = Vec::new();
-        let mut last_date: i64 = 0;
-        let mut duplicates: usize = 0;
+    if !response.status().is_success() {
+        return Err(format!(
+            "\nCouldn't access the puzzle history of the user associated with '{}'; was this token entered correctly?",
+            pat
+        ).into());
+    }
 
-        for puzzle_attempt_string in puzzle_attempt_strings {
-            match parse_puzzle(puzzle_attempt_string) {
-                Ok(mut puzzle_attempt) => {
-                    if !puzzle_attempt.win {
-                        if !ignore.contains(&puzzle_attempt.puzzle.id) {
-                            puzzle_attempt.puzzle.imported_directly = None;
-                        incorrect_puzzles.push(puzzle_attempt.puzzle);
-                        last_date = puzzle_attempt.date;
-                        } else {
-                            duplicates += 1;
-                        }
-                    }
-                }
-                Err(e) => {
-                    return Err(Box::from(e));
+    let body = response.text().await?;
+    let puzzle_attempt_strings = body.lines();
+    let mut incorrect_puzzles = Vec::new();
+    let mut last_date = 0;
+    let mut duplicates = 0;
+
+    for puzzle_attempt_string in puzzle_attempt_strings {
+        match parse_puzzle(puzzle_attempt_string) {
+            Ok(mut puzzle_attempt) if !puzzle_attempt.win => {
+                if ignore.contains(&puzzle_attempt.puzzle.id) {
+                    duplicates += 1;
+                } else {
+                    puzzle_attempt.puzzle.imported_directly = None;
+                    last_date = puzzle_attempt.date;
+                    incorrect_puzzles.push(puzzle_attempt.puzzle);
                 }
             }
+            Ok(_) => {}
+            Err(e) => return Err(e.into()),
         }
-        Ok((incorrect_puzzles, last_date, duplicates))
-
-    } else {
-        Err(Box::from(format!("\nCouldn't access the puzzle history of the user associated with '{}'; was this token entered correctly?", pat)))
     }
+
+    Ok((incorrect_puzzles, last_date, duplicates))
 }
+
 
 pub async fn get_last_n_incorrect(pat: String, n: usize, ignore: Vec<String>) -> Result<Vec<Puzzle>, Box<dyn Error>> {
     let client = reqwest::Client::new();
@@ -71,7 +77,7 @@ pub async fn get_last_n_incorrect(pat: String, n: usize, ignore: Vec<String>) ->
 
         total_duplicates += page_data.2;
 
-        if page.is_empty() {break;}
+        if page.is_empty() { break; }
 
         for puzzle in page {
             incorrect_puzzles.push(puzzle);
