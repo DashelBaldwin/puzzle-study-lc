@@ -42,7 +42,7 @@ impl Puzzle {
         let link: String = format!("https://lichess.org/training/{}", self.id);
         let source: &str;
         if self.imported_directly == Some(true) {
-            source = "(from ID/PGN)";
+            source = "(from ID)";
         } else {
             source = "(from puzzle history)"
         };
