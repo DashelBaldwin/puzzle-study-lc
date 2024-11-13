@@ -11,8 +11,6 @@ While a proper UI is still being developed for this tool, a temporary UI has bee
 
 **Example:** https://lichess.org/study/xjipXf1Q/
 
-(Follow the solution if you can't solve the first one!) => https://lichess.org/training/zOm2u
-
 **Features:**
 * Fetch puzzles by their IDs
 * Fetch puzzles you recently missed in puzzle training
