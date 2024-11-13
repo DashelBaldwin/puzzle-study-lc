@@ -80,7 +80,10 @@ impl Puzzle {
         let ep_flag = fen_regions[10];
         
         let last_move = if ep_flag != "-" {
-            format!("(Last move: {})\n", ep_flag)
+            let (file, rank) = ep_flag.split_at(1);
+            let target_rank = rank.parse::<u8>().unwrap();
+            let move_rank = if target_rank == 3 { 4 } else { 5 };
+            format!("(Last move: {}{})\n", file, move_rank)
         } else {
             "".to_string()
         };
