@@ -67,7 +67,8 @@ impl PieceLocator {
                 if (current.name == self.target.name) && (current.color == self.target.color) {
                     if let Some(rank_restriction) = self.scope_restriction.0 {
                         if rank as usize != rank_restriction { break; }
-                    } else if let Some(file_restriction) = self.scope_restriction.1 {
+                    }
+                    if let Some(file_restriction) = self.scope_restriction.1 {
                         if file as usize != file_restriction { break; }
                     }
                     return Some((rank as usize, file as usize));
@@ -205,7 +206,7 @@ impl Board {
         let piece = self.contents[from.0][from.1].unwrap();
         self.contents[from.0][from.1] = None;
         self.contents[to.0][to.1] = Some(piece);
-        self.en_passant_target = None;
+        if piece.name != PieceName::Pawn { self.en_passant_target = None; }
     }
 
     fn pawn_movement(&mut self, from: (usize, usize), to: (usize, usize), promotion: Option<Piece>) {
@@ -216,8 +217,8 @@ impl Board {
         if let Some(target) = self.en_passant_target {
             if to == target {
                 match to.0 {
-                    2 => self.contents[to.0 - 1][to.1] = None,
-                    5 => self.contents[to.0 + 1][to.1] = None,
+                    2 => self.contents[to.0 + 1][to.1] = None,
+                    5 => self.contents[to.0 - 1][to.1] = None,
                     _ => ()
                 }
                 ()
@@ -336,6 +337,7 @@ impl Board {
     }
 }
 
+// This was made before I knew to use results... *chaos ensues*
 fn find_piece_location(locators: Vec<PieceLocator>) -> Option<(usize, usize)> {
     for locator in locators {
         if let Some(coords) = locator.locate() {
@@ -404,8 +406,7 @@ pub fn pgn_to_fen(pgn_string: &str) -> String {
                     }
 
                     if ply_chars[1] == 'x' {
-                        let r = ply_chars[3].to_digit(10)
-                            .expect("pgn_to_fen: failed to convert digit to usize") as usize;
+                        let r = ply_chars[3].to_digit(10).unwrap() as usize;
                         to = (r - 1, file_idx_from_char(ply_chars[2]));
                         let search_file = file_idx_from_char(ply_chars[0]);
                         
@@ -413,8 +414,7 @@ pub fn pgn_to_fen(pgn_string: &str) -> String {
                             board.pawn_movement(from, to, promotion);
                         }
                     } else {
-                        let r = ply_chars[1].to_digit(10)
-                            .expect("pgn_to_fen: failed to convert digit to usize") as usize;
+                        let r = ply_chars[1].to_digit(10).unwrap() as usize;
                         to = (r - 1, file_idx_from_char(ply_chars[0]));
 
                         if let Some(from) = board.find_origin_of_pawn_move(to, turn, None) {
@@ -427,23 +427,20 @@ pub fn pgn_to_fen(pgn_string: &str) -> String {
                         name: piecename_from_char(ply_chars[0]),
                         color: turn,
                     };
-                    let r = ply_chars[ply_chars.len() - 1].to_digit(10)
-                        .expect("pgn_to_fen: failed to convert digit to usize") as usize;
+                    let r = ply_chars[ply_chars.len() - 1].to_digit(10).unwrap() as usize;
                     to = (r - 1, file_idx_from_char(ply_chars[ply_chars.len() - 2]));
 
                     let mut scope_restriction: (Option<usize>, Option<usize>) = (None, None);
 
                     match ply_chars.len() {
                         5 => {
-                            scope_restriction.0 = Some(ply_chars[2].to_digit(10)
-                                .expect("pgn_to_fen: failed to convert digit to usize") as usize);
+                            scope_restriction.0 = Some(ply_chars[2].to_digit(10).unwrap() as usize);
                             scope_restriction.1 = Some(file_idx_from_char(ply_chars[1]));
                         }
                         4 => {
                             let token = ply_chars[1];
                             if token.is_digit(10) {
-                                scope_restriction.0 = Some(token.to_digit(10)
-                                    .expect("pgn_to_fen: failed to convert digit to usize") as usize);
+                                scope_restriction.0 = Some(token.to_digit(10).unwrap() as usize - 1);
                             } else {
                                 scope_restriction.1 = Some(file_idx_from_char(token));
                             }
