@@ -120,7 +120,7 @@ impl Board {
                     Some(piece) => {
                         if empty_count > 0 {
                             fen.push_str(&empty_count.to_string());
-                            empty_count = 0; // Reset the empty count
+                            empty_count = 0;
                         }
 
                         let piece_char = match piece {
